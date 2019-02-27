@@ -225,9 +225,9 @@ def save_progress(
             results_path=config.results,
             summary_path=directories['summaries'])
 
-    # Summaries
-    summary_str = sess.run(summary_op)
-    summary_writer.add_summary(summary_str, step)
+    # # Summaries  --  Not working atm
+    # summary_str = sess.run(summary_op)
+    # summary_writer.add_summary(summary_str, step)
     return val_perf
 
 
