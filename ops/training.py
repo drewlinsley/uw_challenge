@@ -87,7 +87,7 @@ def validation_step(
         val_dict,
         config,
         log,
-        sequential=False,
+        sequential=True,
         dict_image_key='val_images',
         dict_label_key='val_labels',
         eval_score_key='val_score',
@@ -99,9 +99,10 @@ def validation_step(
     it_val_score = np.asarray([])
     it_val_loss = np.asarray([])
     start_time = time.time()
+    if np.unique(val_batch_idx) == 0:
+        sequential = True
     for idx in range(config.validation_steps):
         # Validation accuracy as the average of n batches
-        import ipdb;ipdb.set_trace()
         if val_batch_idx is not None:
             if not sequential:
                 it_val_batch_idx = val_batch_idx[
@@ -391,7 +392,6 @@ def training_loop(
                     sess=sess,
                     train_dict=train_dict,
                     feed_dict=feed_dict)
-                import ipdb;ipdb.set_trace()
                 if step % config.validation_period == 0:
                     val_score, val_lo, it_val_dict, duration = validation_step(
                         sess=sess,
@@ -406,7 +406,7 @@ def training_loop(
                     # Save progress and important data
                     try:
                         val_check = np.where(val_lo < val_perf)[0]
-                        save_progress(
+                        val_perf = save_progress(
                             config=config,
                             val_check=val_check,
                             weight_dict=weight_dict,
@@ -418,11 +418,13 @@ def training_loop(
                             saver=saver,
                             val_score=val_score,
                             val_loss=val_lo,
+                            val_perf=val_perf,
                             train_score=train_score,
                             train_loss=train_loss,
                             timer=duration,
                             num_params=num_params,
                             log=log,
+                            use_db=use_db,
                             summary_op=summary_op,
                             summary_writer=summary_writer,
                             save_activities=save_activities,

@@ -327,7 +327,6 @@ def build_model(
 
         # Build optimizer
         freeze_lr = None
-        import ipdb;ipdb.set_trace()
         if hasattr(config, 'freeze_lr'):
             freeze_lr = config.freeze_lr
         train_op = optimizers.get_optimizer(
