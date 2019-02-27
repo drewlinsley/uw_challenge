@@ -15,9 +15,14 @@ def get_optimizer(
     """Wrapper for either optimizing as a whole or in partitions."""
     if freeze_lr is not None:
         import ipdb;ipdb.set_trace()
+        all_vars = tf.global_variables()
+        freeze_vars = [v for v in all_vars if 'freeze' in v.name]
+        remaining_vars = [v for v in all_vars if 'freeze' not in v.name]
+        lrs = [freeze_lr, lr]
+        var_list = [freeze_vars, remaining_vars]
         opts = []
-        for optim in optims:
-            opts += [get_optimizer(
+        for var, lr in zip(var_list, lrs):
+            opts += [get_optimizer_fun(
                 loss=loss,
                 lr=lr,
                 optimizer=optimizer,
@@ -26,11 +31,11 @@ def get_optimizer(
                 model=model,
                 clip_gradients=clip_gradients,
                 restore_scope=restore_scope,
-                var_list=var_list,
+                var_list=var,
                 constraints=constraints)]
         return tf.group(*opts)
     else:
-        return get_optimizer(
+        return get_optimizer_fun(
             loss=loss,
             lr=lr,
             optimizer=optimizer,
@@ -43,7 +48,7 @@ def get_optimizer(
             constraints=constraints)
 
 
-def get_optimizer(
+def get_optimizer_fun(
         loss,
         lr,
         optimizer,
