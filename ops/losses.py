@@ -1,7 +1,21 @@
+import numpy as np
 import tensorflow as tf
 
 
-def derive_loss(labels, logits, loss_type):
+def derive_loss(labels, logits, loss_type, loss_weights):
+    """Wrapper for multi-loss training."""
+    if loss_weights is None:
+        loss_weights = np.ones(len(loss_type))
+    if isinstance(loss_type, list):
+        loss_list = []
+        for lt, lw in zip(loss_type, loss_weights):
+            loss_list += [derive_loss_fun(labels=labels, logits=logits, loss_type=lt) * lw]
+        return tf.add_n(loss_list)
+    else:
+        return derive_loss_fun(labels=labels, logits=logits, loss_type=loss_type)
+
+
+def derive_loss_fun(labels, logits, loss_type):
     """Derive loss_type between labels and logits."""
     assert loss_type is not None, 'No loss_type declared'
     if loss_type == 'sparse_ce':  #  or loss_type == 'cce':
@@ -47,15 +61,36 @@ def derive_loss(labels, logits, loss_type):
             logits=logits)
     elif loss_type == 'l2':
         logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
         return tf.nn.l2_loss(tf.reshape(labels, [-1]) - logits)
+    elif loss_type == 'mse':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        return tf.losses.mean_squared_error(labels=labels, predictions=logits)
+    elif loss_type == 'mse_nn':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        intermediate_loss = (logits - labels) ** 2
+        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        intermediate_loss = intermediate_loss * mask
+        return tf.sqrt(tf.reduce_mean(intermediate_loss))
     elif loss_type == 'l2_image':
         logits = tf.cast(logits, tf.float32)
         return tf.nn.l2_loss(labels - logits)
     elif loss_type == 'pearson' or loss_type == 'correlation':
         logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
         return pearson_dissimilarity(
             labels=labels,
             logits=logits,
+            REDUCE=tf.reduce_mean)
+    elif loss_type == 'pearson_nn':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        return pearson_dissimilarity(
+            labels=labels,
+            logits=logits,
+            mask=tf.greater_equal(labels, 0.),
             REDUCE=tf.reduce_mean)
     else:
         raise NotImplementedError(loss_type)
@@ -73,6 +108,15 @@ def derive_score(labels, logits, score_type, loss_type):
     elif score_type == 'l2':
         logits = tf.cast(logits, tf.float32)
         return tf.nn.l2_loss(tf.reshape(labels, [-1]) - logits)
+    elif score_type == 'mse':
+        return tf.losses.mean_squared_error(labels=labels, predictions=logits)
+    elif score_type == 'mse_nn':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        intermediate_loss = (logits - labels) ** 2
+        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        intermediate_loss = intermediate_loss * mask
+        return tf.sqrt(tf.reduce_mean(intermediate_loss))
     elif score_type == 'pearson' or score_type == 'correlation':
         logits = tf.cast(logits, tf.float32)
         return pearson_dissimilarity(
@@ -101,7 +145,7 @@ def derive_score(labels, logits, score_type, loss_type):
         raise NotImplementedError(loss_type)
 
 
-def pearson_dissimilarity(labels, logits, REDUCE, eps_1=1e-4, eps_2=1e-12):
+def pearson_dissimilarity(labels, logits, REDUCE, mask=None, eps_1=1e-4, eps_2=1e-12):
     """Calculate pearson diss. loss."""
     pred = logits
     x_shape = pred.get_shape().as_list()
@@ -149,6 +193,8 @@ def pearson_dissimilarity(labels, logits, REDUCE, eps_1=1e-4, eps_2=1e-12):
                 -1),
             count))
     corr = cov / (tf.multiply(x1_std, x2_std) + eps_2)
+    if mask is not None:
+        corr *= mask
     if REDUCE is not None:
         corr = REDUCE(corr)
     return 1 - corr

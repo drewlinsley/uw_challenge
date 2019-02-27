@@ -9,7 +9,7 @@ class Config:
     def __init__(self, **kwargs):
         """Global config file for normalization experiments."""
         self.data_root = '/media/data_cifs/image_datasets/'
-        self.project_directory = '/media/data_cifs/cluttered_nist_experiments/'
+        self.project_directory = '/media/data_cifs/uw_challenge/'
         self.tf_records = os.path.join(
             self.project_directory,
             'tf_records')

@@ -6,6 +6,49 @@ def get_optimizer(
         lr,
         optimizer,
         dtype=tf.float32,
+        freeze_lr=None,
+        model=None,
+        clip_gradients=None,
+        restore_scope=None,
+        var_list=None,
+        constraints=None):
+    """Wrapper for either optimizing as a whole or in partitions."""
+    if freeze_lr is not None:
+        import ipdb;ipdb.set_trace()
+        opts = []
+        for optim in optims:
+            opts += [get_optimizer(
+                loss=loss,
+                lr=lr,
+                optimizer=optimizer,
+                dtype=dtype,
+                freeze_lr=freeze_lr,
+                model=model,
+                clip_gradients=clip_gradients,
+                restore_scope=restore_scope,
+                var_list=var_list,
+                constraints=constraints)]
+        return tf.group(*opts)
+    else:
+        return get_optimizer(
+            loss=loss,
+            lr=lr,
+            optimizer=optimizer,
+            dtype=dtype,
+            freeze_lr=freeze_lr,
+            model=model,
+            clip_gradients=clip_gradients,
+            restore_scope=restore_scope,
+            var_list=var_list,
+            constraints=constraints)
+
+
+def get_optimizer(
+        loss,
+        lr,
+        optimizer,
+        dtype=tf.float32,
+        freeze_lr=None,
         model=None,
         clip_gradients=None,
         restore_scope=None,
@@ -33,7 +76,7 @@ def get_optimizer(
         elif optimizer == 'rmsprop':
             optim = tf.train.RMSPropOptimizer
         else:
-            raise RuntimeError('Cannot understand your loss function.')
+            raise RuntimeError('Cannot understand your optimizer: %s' % optimizer)
 
         if optimizer == 'momentum':
             optim = optim(

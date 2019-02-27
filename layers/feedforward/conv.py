@@ -4,6 +4,15 @@ from layers.feedforward import normalization
 from layers.feedforward import pooling
 
 
+def create_mask(v):
+    """Create mask for annulus."""
+    v = tf.cast(tf.equal(v, 0.), tf.float32)
+    return tf.cast(
+        tf.less(
+            tf.reduce_mean(v, reduction_indices=[0, 3], keep_dims=True),
+            0.5), tf.float32)
+
+
 def input_layer(
         X,
         reuse,
@@ -173,6 +182,53 @@ def seg_readout_layer(
             trainable=training,
             use_bias=True)
     return activity
+
+
+def mask_readout(
+        activity,
+        reuse,
+        training,
+        output_shape,
+        kernel_size=[11, 11],
+        dtype=tf.float32,
+        var_scope='readout_1',
+        padding='SAME',
+        mask=None,
+        learnable_pool=False,
+        strides=(1, 1, 1, 1),
+        features=19):
+    """Mask readout layer from Bethge's group."""
+    assert isinstance(kernel_size, list), 'Pass kernel_size as a list.'
+    vol_shape = activity.get_shape().as_list()
+    space_kernel = tf.get_variable(
+        name='readout_spatial',
+        shape=kernel_size + [vol_shape[-1], np.squeeze(output_shape)],
+        initializer=tf.initializers.variance_scaling())
+
+    # Learn a kernel per neuron
+    activity = tf.nn.conv2d(
+        input=activity,
+        filter=space_kernel,
+        strides=strides,
+        padding=padding,
+        name='spatial_conv')
+
+    if mask is not None:
+        activity *= mask
+
+    # Pool neurons
+    if learnable_pool:
+        raise NotImplementedError('Need to do a per-pixel temperature')
+        temperature = tf.get_variable(
+            name='temperature',
+            shape=np.squeeze(output_shape),
+            initializer=tf.initializers.zeros())
+        temperature = tf.sigmoid(temperature)
+        a = tf.log(activity) / temperature
+        a = tf.exp(activity) / tf.reduce_sum(tf.exp(activity), reduction_indices=[1, 2])
+        return tf.reduce_sum(activity * a, reduction_indices=[1, 2])
+    else:
+        return tf.reduce_max(activity, reduction_indices=[1, 2])
 
 
 def readout_layer(

@@ -284,11 +284,17 @@ def build_model(
         train_loss = losses.derive_loss(
             labels=train_labels,
             logits=train_logits,
-            loss_type=config.loss_function)
+            loss_type=config.loss_function,
+            loss_weights=config.loss_weights)
+        if isinstance(config.loss_function, list):
+            val_loss = config.val_loss_function
+        else:
+            val_loss = config.loss_function
         val_loss = losses.derive_loss(
             labels=val_labels,
             logits=val_logits,
-            loss_type=config.loss_function)
+            loss_type=config.loss_function,
+            loss_weights=config.loss_weights)
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('val_loss', val_loss)
 
@@ -320,10 +326,15 @@ def build_model(
             tf.summary.image('val_images', val_images)
 
         # Build optimizer
+        freeze_lr = None
+        import ipdb;ipdb.set_trace()
+        if hasattr(config, 'freeze_lr'):
+            freeze_lr = config.freeze_lr
         train_op = optimizers.get_optimizer(
             train_loss,
             config.lr,
             config.optimizer,
+            freeze_lr=freeze_lr,
             dtype=train_images.dtype)
 
         # Initialize model

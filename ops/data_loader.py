@@ -194,6 +194,14 @@ def image_augmentations(
                 intermediate_size[0],
                 intermediate_size[1])
             print 'Applying BSDS crop.'
+        if 'pad' in data_augmentations:
+            image = tf.image.resize_image_with_crop_or_pad(
+                image, model_input_image_size[0], model_input_image_size[1])
+        if 'transpose_bgr' in data_augmentations:
+            r = image[..., 0]
+            g = image[..., 0]
+            b = image[..., 0]
+            image = tf.stack([r, g, b], axis=-1)
         if 'uint8_rescale' in data_augmentations:
             image = tf.cast(image, tf.float32) / 255.
             print 'Applying uint8 rescale to the image.'

@@ -101,6 +101,7 @@ def validation_step(
     start_time = time.time()
     for idx in range(config.validation_steps):
         # Validation accuracy as the average of n batches
+        import ipdb;ipdb.set_trace()
         if val_batch_idx is not None:
             if not sequential:
                 it_val_batch_idx = val_batch_idx[
@@ -390,6 +391,7 @@ def training_loop(
                     sess=sess,
                     train_dict=train_dict,
                     feed_dict=feed_dict)
+                import ipdb;ipdb.set_trace()
                 if step % config.validation_period == 0:
                     val_score, val_lo, it_val_dict, duration = validation_step(
                         sess=sess,
