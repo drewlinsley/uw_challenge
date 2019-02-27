@@ -14,7 +14,6 @@ def get_optimizer(
         constraints=None):
     """Wrapper for either optimizing as a whole or in partitions."""
     if freeze_lr is not None:
-        import ipdb;ipdb.set_trace()
         all_vars = tf.global_variables()
         freeze_vars = [v for v in all_vars if 'freeze' in v.name]
         remaining_vars = [v for v in all_vars if 'freeze' not in v.name]
