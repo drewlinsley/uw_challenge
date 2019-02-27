@@ -321,7 +321,7 @@ def build_model(
             score_type=config.score_function)
         tf.summary.scalar('train_score', train_score)
         tf.summary.scalar('val_score', val_score)
-        if tensorboard_images:
+        if tensorboard_images and not placeholders:
             tf.summary.image('train_images', train_images)
             tf.summary.image('val_images', val_images)
 
