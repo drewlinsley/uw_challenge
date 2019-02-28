@@ -225,7 +225,7 @@ def save_progress(
             results_path=config.results,
             summary_path=directories['summaries'])
 
-    # # Summaries  --  Not working atm
+    # Summaries -- not working atm
     # summary_str = sess.run(summary_op)
     # summary_writer.add_summary(summary_str, step)
     return val_perf
@@ -371,6 +371,7 @@ def training_loop(
                 range(config.epochs),
                 desc='Epoch',
                 total=config.epochs):
+            train_batch_idx = train_batch_idx[np.random.permutation(len(train_batch_idx))]
             for train_batch in range(train_batches):
                 data_idx = train_batch_idx == train_batch
                 it_train_images = train_images[data_idx]
@@ -392,6 +393,8 @@ def training_loop(
                     sess=sess,
                     train_dict=train_dict,
                     feed_dict=feed_dict)
+                if step == 100:
+                    import ipdb;ipdb.set_trace()
                 if step % config.validation_period == 0:
                     val_score, val_lo, it_val_dict, duration = validation_step(
                         sess=sess,

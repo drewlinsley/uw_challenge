@@ -16,6 +16,7 @@ class hGRU(object):
             self,
             layer_name,
             x_shape,
+            mask,
             timesteps=1,
             h_ext=15,
             strides=[1, 1, 1, 1],
@@ -38,6 +39,7 @@ class hGRU(object):
         self.train = train
         self.layer_name = layer_name
         self.data_format = data_format
+        self.mask = mask
         # Sort through and assign the auxilliary variables
         default_vars = self.defaults()
         if aux is not None and isinstance(aux, dict):
@@ -376,8 +378,8 @@ class hGRU(object):
 
     def input_integration(self, x, c1, h2):
         """Integration on the input."""
-        return self.recurrent_nl(
-            x - self.recurrent_nl((self.alpha * h2 + self.mu) * c1))
+        return self.recurrent_nl((
+            x - ((self.alpha * h2 + self.mu) * c1)) * self.mask)
 
     def output_integration(self, h1, c2, g2, h2):
         """Integration on the output."""
@@ -386,7 +388,7 @@ class hGRU(object):
             e = self.gamma * c2
             a = self.kappa * (h1 + e)
             m = self.omega * (h1 * e)
-            h2_hat = self.recurrent_nl(a + m)
+            h2_hat = self.recurrent_nl((a + m) * self.mask)
         else:
             # Additive gating I + P + Q
             h2_hat = self.recurrent_nl(
@@ -396,7 +398,7 @@ class hGRU(object):
     def full(self, i0, x, h1, h2):
         """hGRU body."""
         # Circuit input receives recurrent output h2
-        c1 = self.circuit_input(h2)
+        c1 = self.circuit_input(h2) * self.mask
 
         with tf.variable_scope(
                 '%s/c1_bn' % self.var_scope,
@@ -411,7 +413,7 @@ class hGRU(object):
                 updates_collections=None,
                 scope=scope,
                 reuse=self.reuse,
-                is_training=self.train)
+                is_training=self.train) * self.mask
 
         # Calculate input (-) integration: h1 (4)
         h1 = self.input_integration(
@@ -434,7 +436,7 @@ class hGRU(object):
                 updates_collections=None,
                 scope=scope,
                 reuse=self.reuse,
-                is_training=self.train)
+                is_training=self.train) * self.mask
 
         # Calculate output (+) integration: h2 (8, 9)
         h2 = self.output_integration(

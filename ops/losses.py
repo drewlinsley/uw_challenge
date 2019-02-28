@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 
@@ -96,7 +97,7 @@ def derive_loss_fun(labels, logits, loss_type):
         raise NotImplementedError(loss_type)
 
 
-def derive_score(labels, logits, score_type, loss_type):
+def derive_score(labels, logits, score_type, loss_type, dataset):
     """Derive score_type between labels and logits."""
     assert score_type is not None, 'No score_type declared'
     if score_type == 'sparse_ce' or score_type == 'cce':
@@ -113,6 +114,18 @@ def derive_score(labels, logits, score_type, loss_type):
     elif score_type == 'mse_nn':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
+        intermediate_loss = (logits - labels) ** 2
+        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        intermediate_loss = intermediate_loss * mask
+        return tf.sqrt(tf.reduce_mean(intermediate_loss))
+    elif score_type == 'mse_nn_unnorm':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        moments = np.load(os.path.join('moments', '%s.npz' % dataset))
+        mu = moments['mean']
+        sigma = moments['std']
+        logits = logits * sigma + mu
+        labels = labels * sigma + mu
         intermediate_loss = (logits - labels) ** 2
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
         intermediate_loss = intermediate_loss * mask

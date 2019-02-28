@@ -4,13 +4,25 @@ from layers.feedforward import normalization
 from layers.feedforward import pooling
 
 
-def create_mask(v):
+def create_mask(v, dilate=None):
     """Create mask for annulus."""
+    def binarize(z):
+        return  tf.cast(
+            tf.less(
+                tf.reduce_mean(z, reduction_indices=[0, 3], keep_dims=True),
+                0.5), tf.float32)
     v = tf.cast(tf.equal(v, 0.), tf.float32)
-    return tf.cast(
-        tf.less(
-            tf.reduce_mean(v, reduction_indices=[0, 3], keep_dims=True),
-            0.5), tf.float32)
+    m = binarize(v)
+    if dilate is not None:
+        assert isinstance(dilate, list), 'Dilate must be a list for tf.nn.dilate2d'
+        m = tf.nn.dilation2d(
+            input=m,
+            filter=dilate,
+            strides=[1, 1, 1, 1],
+            rates=[1, 1, 1, 1],
+            padding='SAME')
+        m = binarize(m)
+    return m
 
 
 def input_layer(
@@ -196,7 +208,8 @@ def mask_readout(
         mask=None,
         learnable_pool=False,
         strides=(1, 1, 1, 1),
-        features=19):
+        features=19,
+        REDUCE=tf.reduce_mean):
     """Mask readout layer from Bethge's group."""
     assert isinstance(kernel_size, list), 'Pass kernel_size as a list.'
     vol_shape = activity.get_shape().as_list()
@@ -228,7 +241,7 @@ def mask_readout(
         a = tf.exp(activity) / tf.reduce_sum(tf.exp(activity), reduction_indices=[1, 2])
         return tf.reduce_sum(activity * a, reduction_indices=[1, 2])
     else:
-        return tf.reduce_max(activity, reduction_indices=[1, 2])
+        return REDUCE(activity, reduction_indices=[1, 2])
 
 
 def readout_layer(

@@ -22,6 +22,7 @@ class data_processing(object):
         self.default_loss_function = 'cce'
         self.score_metric = 'accuracy'
         self.store_z = False
+        self.z_score_neurons = True
         self.normalize_im = False
         self.all_flips = True
         self.shuffle = True
@@ -58,6 +59,7 @@ class data_processing(object):
         if split_start is None:
             split_size, split_start = 50, 0  # Take first 50 images for validation
         image_data = np.load(self.image_data)
+        image_data = image_data[..., [2, 1, 0]]
         neural_data = pd.read_csv(self.neural_data)
         test_images = image_data[:self.test_data_split]
         train_images = image_data[self.test_data_split:]
@@ -66,7 +68,6 @@ class data_processing(object):
         train_masks = np.median(train_masks, axis=[0, 3]).astype(np.float32)[None, ..., None]
         test_masks = np.median(test_masks, axis=[0, 3]).astype(np.float32)[None, ..., None]
         train_labels = neural_data.as_matrix()
-        train_labels[np.isnan(train_labels)] = -1.
 
         # Create validation set
         val_idx = np.in1d(np.arange(len(train_images)), np.arange(split_start, split_start + split_size))
@@ -75,6 +76,14 @@ class data_processing(object):
         train_images = train_images[~val_idx]
         train_labels = train_labels[~val_idx]
         val_masks = np.copy(train_masks)
+        if self.z_score_neurons:
+            train_mean = np.nanmean(train_labels, axis=0, keepdims=True)
+            train_std = np.nanstd(train_labels, axis=0, keepdims=True)
+            np.savez(os.path.join('moments', self.output_name), mean=train_mean, std=train_std)
+            train_labels = (train_labels - train_mean) / train_std
+            val_labels = (val_labels - train_mean) / train_std
+        train_labels[np.isnan(train_labels)] = -99.
+        val_labels[np.isnan(val_labels)] = -99.
 
         # Build CV dict
         cv_files, cv_labels, cv_masks = {}, {}, {}

@@ -8,7 +8,7 @@ def build_model(data_tensor, reuse, training, output_shape):
     if isinstance(output_shape, list):
         output_shape = output_shape[0]
     with tf.variable_scope('cnn', reuse=reuse):
-        mask = conv.create_mask(data_tensor)
+        mask = conv.create_mask(data_tensor)  # , dilate=[[[3]]])
         with tf.variable_scope('freeze', reuse=reuse):
             net = vgg19.Model(
                 trainable=True,
@@ -25,10 +25,12 @@ def build_model(data_tensor, reuse, training, output_shape):
                 training=training,
                 mask=mask,
                 output_shape=output_shape,
-                kernel_size=[7, 7],
+                kernel_size=[21, 21],
                 learnable_pool=False)
+    # x = tf.nn.relu(x)
     extra_activities = {
-        'activity': x
+        'activity': net.conv1_1,
+        'mask': mask
     }
     return x, extra_activities
 

@@ -313,11 +313,13 @@ def build_model(
             labels=train_labels,
             logits=train_logits,
             loss_type=config.loss_function,
+            dataset=train_dataset_module.output_name,
             score_type=config.score_function)
         val_score = losses.derive_score(
             labels=val_labels,
             logits=val_logits,
             loss_type=config.loss_function,
+            dataset=train_dataset_module.output_name,
             score_type=config.score_function)
         tf.summary.scalar('train_score', train_score)
         tf.summary.scalar('val_score', val_score)
