@@ -147,7 +147,7 @@ class hGRU(object):
             constraint = None
         self.var_scope = '%s_hgru_weights' % self.layer_name
         with tf.variable_scope(self.var_scope):
-            self.horizontal_kernels = tf.get_variable(
+            self.horizontal_kernels_inh = tf.get_variable(
                 name='%s_horizontal_inh' % self.layer_name,
                 dtype=self.dtype,
                 initializer=initialization.xavier_initializer(
