@@ -281,7 +281,7 @@ def build_model(
                 output_shape=val_dataset_module.output_size)
 
         # Derive loss
-        train_loss = losses.derive_loss(
+        train_loss, train_loss_list = losses.derive_loss(
             labels=train_labels,
             logits=train_logits,
             loss_type=config.loss_function,
@@ -290,10 +290,10 @@ def build_model(
             val_loss = config.val_loss_function
         else:
             val_loss = config.loss_function
-        val_loss = losses.derive_loss(
+        val_loss, val_loss_list = losses.derive_loss(
             labels=val_labels,
             logits=val_logits,
-            loss_type=config.loss_function,
+            loss_type=val_loss,
             loss_weights=config.loss_weights)
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('val_loss', val_loss)
@@ -359,6 +359,9 @@ def build_model(
             'train_logits': train_logits,
             'train_op': train_op
         }
+        if train_loss_list is not None:
+            for k, v in train_loss_list.iteritems():
+                train_dict[k] = v
         if train_aux is not None:
             train_dict['train_aux']  = train_aux    
 
@@ -381,6 +384,9 @@ def build_model(
             'val_logits': val_logits,
             'val_labels': val_labels
         }
+        if val_loss_list is not None:
+            for k, v in val_loss_list.iteritems():
+                val_dict[k] = v
         if val_aux is not None:
             val_dict['aux']  = val_aux
 

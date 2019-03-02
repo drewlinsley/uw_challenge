@@ -393,7 +393,8 @@ def training_loop(
                     sess=sess,
                     train_dict=train_dict,
                     feed_dict=feed_dict)
-                if step == 100:
+                if step == 50:
+                    # print np.sum(it_val_dict['ro_weights'] != it_train_dict['ro_weights'])
                     import ipdb;ipdb.set_trace()
                 if step % config.validation_period == 0:
                     val_score, val_lo, it_val_dict, duration = validation_step(

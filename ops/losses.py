@@ -11,9 +11,9 @@ def derive_loss(labels, logits, loss_type, loss_weights):
         loss_list = []
         for lt, lw in zip(loss_type, loss_weights):
             loss_list += [derive_loss_fun(labels=labels, logits=logits, loss_type=lt) * lw]
-        return tf.add_n(loss_list)
+        return tf.add_n(loss_list), {k: v for k, v in zip(lt, loss_list)}
     else:
-        return derive_loss_fun(labels=labels, logits=logits, loss_type=loss_type)
+        return derive_loss_fun(labels=labels, logits=logits, loss_type=loss_type), None
 
 
 def derive_loss_fun(labels, logits, loss_type):
@@ -64,17 +64,23 @@ def derive_loss_fun(labels, logits, loss_type):
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
         return tf.nn.l2_loss(tf.reshape(labels, [-1]) - logits)
-    elif loss_type == 'mse':
+    elif score_type == 'mse':
+        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits))
+    elif score_type == 'mse_nn':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
-        return tf.losses.mean_squared_error(labels=labels, predictions=logits)
-    elif loss_type == 'mse_nn':
-        logits = tf.cast(logits, tf.float32)
-        labels = tf.cast(labels, tf.float32)
-        intermediate_loss = (logits - labels) ** 2
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
-        intermediate_loss = intermediate_loss * mask
-        return tf.sqrt(tf.reduce_mean(intermediate_loss))
+        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
+    elif score_type == 'mse_nn_unnorm':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        moments = np.load(os.path.join('moments', '%s.npz' % dataset))
+        mu = moments['mean']
+        sigma = moments['std']
+        logits = sigma * logits + mu
+        labels = sigma * labels + mu
+        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
     elif loss_type == 'l2_image':
         logits = tf.cast(logits, tf.float32)
         return tf.nn.l2_loss(labels - logits)
@@ -110,26 +116,22 @@ def derive_score(labels, logits, score_type, loss_type, dataset):
         logits = tf.cast(logits, tf.float32)
         return tf.nn.l2_loss(tf.reshape(labels, [-1]) - logits)
     elif score_type == 'mse':
-        return tf.losses.mean_squared_error(labels=labels, predictions=logits)
+        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits))
     elif score_type == 'mse_nn':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
-        intermediate_loss = (logits - labels) ** 2
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
-        intermediate_loss = intermediate_loss * mask
-        return tf.sqrt(tf.reduce_mean(intermediate_loss))
+        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
     elif score_type == 'mse_nn_unnorm':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
         moments = np.load(os.path.join('moments', '%s.npz' % dataset))
         mu = moments['mean']
         sigma = moments['std']
-        logits = logits * sigma + mu
-        labels = labels * sigma + mu
-        intermediate_loss = (logits - labels) ** 2
+        logits = sigma * logits + mu
+        labels = sigma * labels + mu
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
-        intermediate_loss = intermediate_loss * mask
-        return tf.sqrt(tf.reduce_mean(intermediate_loss))
+        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
     elif score_type == 'pearson' or score_type == 'correlation':
         logits = tf.cast(logits, tf.float32)
         return pearson_dissimilarity(

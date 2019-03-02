@@ -9,16 +9,16 @@ def experiment_params():
     # Experiment params. All below this line need to be in lists.
     exp['experiment'] = [__file__.split(os.path.sep)[-1].split('.')[0]]
     exp['train_dataset'] = [
-        'uw_challenge',
+        'uw_challenge_no_z',
     ]
     exp['val_dataset'] = [
-        'uw_challenge',
+        'uw_challenge_no_z',
     ]
     exp['model'] = [
         'hgru_bn',
     ]
 
-    exp['validation_period'] = [50]
+    exp['validation_period'] = [10]
     exp['validation_steps'] = [1]
     exp['shuffle_val'] = [True]  # Shuffle val data.
     exp['shuffle_train'] = [True]
@@ -31,12 +31,12 @@ def experiment_params():
     exp['lr'] = [1e-2]
     # exp['freeze_lr'] = [1e-5]
 
-    # exp['loss_function'] = [['mse_nn', 'pearson']]
-    # exp['loss_weights'] = [[1, 0.2]]
-    exp['loss_function'] = ['mse_nn']
-    exp['loss_weights'] = [1]  # [[1, 0.2]]
+    exp['loss_function'] = [['mse_nn', 'pearson']]
+    exp['loss_weights'] = [[1, 1]]
+    # exp['loss_function'] = ['mse_nn']
+    # exp['loss_weights'] = [1]  # [[1, 0.2]]
     exp['val_loss_function'] = ['mse_nn']
-    exp['score_function'] = ['mse_nn_unnorm']
+    exp['score_function'] = ['mse_nn']
     exp['optimizer'] = ['nadam']
     exp['train_batch_size'] = [50]
     exp['val_batch_size'] = [50]

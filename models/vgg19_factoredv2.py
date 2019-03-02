@@ -9,9 +9,10 @@ def build_model(data_tensor, reuse, training, output_shape):
     """Create the hgru from Learning long-range..."""
     if isinstance(output_shape, list):
         output_shape = output_shape[0]
-    moments = np.load(os.path.join('moments', 'uw_challenge.npz')) 
+    moments = np.load(os.path.join('moments', 'uw_challenge.npz'))
+    mask = np.load(os.path.join('weights', 'mask.npy'))
     with tf.variable_scope('cnn', reuse=reuse):
-        mask = conv.create_mask(data_tensor)  # , dilate=[[[3]]])
+        # mask = conv.create_mask(data_tensor)  # , dilate=[[[3]]])
         with tf.variable_scope('freeze', reuse=reuse):
             net = vgg19.Model(
                 trainable=training,
@@ -22,13 +23,21 @@ def build_model(data_tensor, reuse, training, output_shape):
                 mask=mask,
                 training=training)
         with tf.variable_scope('scratch', reuse=reuse):
-            x = tf.contrib.layers.flatten(x)
-            x = tf.layers.dense(inputs=x, units=output_shape)
+            x = conv.mask_readout(
+                activity=x,
+                reuse=reuse,
+                training=training,
+                mask=mask,
+                output_shape=output_shape,
+                kernel_size=[21, 21],
+                learnable_pool=False)
     mean = moments['mean']
     sd = moments['std']
+    # x = (x - mean) / sd
+    # x = tf.nn.relu(x)
     extra_activities = {
         'activity': net.conv1_1,
-        'mask': mask
+        # 'mask': mask
     }
     return x, extra_activities
 
