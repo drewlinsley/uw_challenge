@@ -162,7 +162,8 @@ class hGRU(object):
                     uniform=self.normal_initializer),
                 trainable=self.train)
             if self.symmetric_weights and self.symmetric_inits:
-                self.horizontal_kernels = self.symmetric_init(self.horizontal_kernels)
+                self.horizontal_kernels_inh = self.symmetric_init(self.horizontal_kernels_inh)
+                self.horizontal_kernels_exc = self.symmetric_init(self.horizontal_kernels_exc)
             self.gain_kernels = tf.get_variable(
                 name='%s_gain' % self.layer_name,
                 dtype=self.dtype,
