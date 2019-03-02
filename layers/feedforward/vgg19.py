@@ -30,6 +30,7 @@ class Model:
         """
 
         rgb_scaled = rgb * 255.0
+        training = tf.constant(training)
 
         # Convert RGB to BGR
         red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)

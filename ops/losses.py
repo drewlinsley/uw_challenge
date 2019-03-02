@@ -64,14 +64,14 @@ def derive_loss_fun(labels, logits, loss_type):
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
         return tf.nn.l2_loss(tf.reshape(labels, [-1]) - logits)
-    elif score_type == 'mse':
+    elif loss_type == 'mse':
         return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits))
-    elif score_type == 'mse_nn':
+    elif loss_type == 'mse_nn':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
         return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
-    elif score_type == 'mse_nn_unnorm':
+    elif loss_type == 'mse_nn_unnorm':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
         moments = np.load(os.path.join('moments', '%s.npz' % dataset))

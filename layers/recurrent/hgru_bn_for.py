@@ -16,7 +16,6 @@ class hGRU(object):
             self,
             layer_name,
             x_shape,
-            mask,
             timesteps=1,
             h_ext=15,
             strides=[1, 1, 1, 1],
@@ -39,7 +38,6 @@ class hGRU(object):
         self.train = train
         self.layer_name = layer_name
         self.data_format = data_format
-        self.mask = mask
         # Sort through and assign the auxilliary variables
         default_vars = self.defaults()
         if aux is not None and isinstance(aux, dict):
@@ -91,10 +89,10 @@ class hGRU(object):
             'lesion_omega': False,
             'lesion_kappa': False,
             'dtype': tf.float32,
-            'hidden_init': 'random',
+            'hidden_init': 'learned',
             'gate_bias_init': 'chronos',
             'train': True,
-            'recurrent_nl': tf.nn.tanh,
+            'recurrent_nl': tf.nn.relu,
             'gate_nl': tf.nn.sigmoid,
             'normal_initializer': False,
             'symmetric_weights': True,
@@ -149,33 +147,38 @@ class hGRU(object):
             constraint = None
         self.var_scope = '%s_hgru_weights' % self.layer_name
         with tf.variable_scope(self.var_scope):
-            self.horizontal_kernels_inh = tf.get_variable(
+            self.horizontal_kernels = tf.get_variable(
                 name='%s_horizontal_inh' % self.layer_name,
                 dtype=self.dtype,
-                shape=self.h_shape,
-                initializer=tf.initializers.variance_scaling(),
+                initializer=initialization.xavier_initializer(
+                    shape=self.h_shape,
+                    uniform=self.normal_initializer),
                 trainable=self.train)
             self.horizontal_kernels_exc = tf.get_variable(
                 name='%s_horizontal_exc' % self.layer_name,
                 dtype=self.dtype,
-                shape=self.h_shape,
-                initializer=tf.initializers.variance_scaling(),
+                initializer=initialization.xavier_initializer(
+                    shape=self.h_shape,
+                    uniform=self.normal_initializer),
                 trainable=self.train)
             if self.symmetric_weights and self.symmetric_inits:
-                self.horizontal_kernels_inh = self.symmetric_init(self.horizontal_kernels_inh)
-                self.horizontal_kernels_exc = self.symmetric_init(self.horizontal_kernels_exc)
+                self.horizontal_kernels = self.symmetric_init(self.horizontal_kernels)
             self.gain_kernels = tf.get_variable(
                 name='%s_gain' % self.layer_name,
                 dtype=self.dtype,
-                shape=self.g_shape,
-                initializer=tf.initializers.variance_scaling(),
-                trainable=self.train)
+                trainable=self.train,
+                initializer=initialization.xavier_initializer(
+                    shape=self.g_shape,
+                    uniform=self.normal_initializer,
+                    mask=None))
             self.mix_kernels = tf.get_variable(
                 name='%s_mix' % self.layer_name,
                 dtype=self.dtype,
-                shape=self.m_shape,
-                initializer=tf.initializers.variance_scaling(),
-                trainable=self.train)
+                trainable=self.train,
+                initializer=initialization.xavier_initializer(
+                    shape=self.m_shape,
+                    uniform=self.normal_initializer,
+                    mask=None))
             if self.symmetric_gate_weights and self.symmetric_inits:
                 self.gain_kernels = self.symmetric_init(self.gain_kernels)
                 self.mix_kernels = self.symmetric_init(self.mix_kernels)
@@ -206,10 +209,12 @@ class hGRU(object):
             if self.alpha and not self.lesion_alpha:
                 self.alpha = tf.get_variable(
                     name='%s_alpha' % self.layer_name,
+                    trainable=self.train,
                     constraint=constraint,
-                    shape=self.bias_shape,
-                    initializer=tf.initializers.variance_scaling(),
-                    trainable=self.train)
+                    initializer=initialization.xavier_initializer(
+                        shape=self.bias_shape,
+                        uniform=self.normal_initializer,
+                        mask=None))
             elif self.lesion_alpha:
                 self.alpha = tf.constant(0.)
             else:
@@ -218,10 +223,12 @@ class hGRU(object):
             if self.mu and not self.lesion_mu:
                 self.mu = tf.get_variable(
                     name='%s_mu' % self.layer_name,
+                    trainable=self.train,
                     constraint=constraint,
-                    shape=self.bias_shape,
-                    initializer=tf.initializers.variance_scaling(),
-                    trainable=self.train)
+                    initializer=initialization.xavier_initializer(
+                        shape=self.bias_shape,
+                        uniform=self.normal_initializer,
+                        mask=None))
 
             elif self.lesion_mu:
                 self.mu = tf.constant(0.)
@@ -231,10 +238,12 @@ class hGRU(object):
             if self.gamma:
                 self.gamma = tf.get_variable(
                     name='%s_gamma' % self.layer_name,
+                    trainable=self.train,
                     constraint=constraint,
-                    shape=self.bias_shape,
-                    initializer=tf.initializers.variance_scaling(),
-                    trainable=self.train)
+                    initializer=initialization.xavier_initializer(
+                        shape=self.bias_shape,
+                        uniform=self.normal_initializer,
+                        mask=None))
             else:
                 self.gamma = tf.constant(1.)
 
@@ -244,20 +253,23 @@ class hGRU(object):
                 else:
                     self.kappa = tf.get_variable(
                         name='%s_kappa' % self.layer_name,
+                        trainable=self.train,
                         constraint=constraint,
-                        shape=self.bias_shape,
-                        initializer=tf.initializers.variance_scaling(),
-                        trainable=self.train)
-
+                        initializer=initialization.xavier_initializer(
+                            shape=self.bias_shape,
+                            uniform=self.normal_initializer,
+                            mask=None))
                 if self.lesion_omega:
                     self.omega = tf.constant(0.)
                 else:
                     self.omega = tf.get_variable(
                         name='%s_omega' % self.layer_name,
+                        trainable=self.train,
                         constraint=constraint,
-                        shape=self.bias_shape,
-                        initializer=tf.initializers.variance_scaling(),
-                        trainable=self.train)
+                        initializer=initialization.xavier_initializer(
+                            shape=self.bias_shape,
+                            uniform=self.normal_initializer,
+                            mask=None))
 
             else:
                 self.kappa = tf.constant(1.)
@@ -317,14 +329,14 @@ class hGRU(object):
             raise RuntimeError
         return activities
 
-    def circuit_input(self, h2):
+    def circuit_input(self, h2, i0):
         """Calculate gain and inh horizontal activities."""
         g1_intermediate = self.conv_2d_op(
             data=h2,
             weights=self.gain_kernels,
             symmetric_weights=self.symmetric_gate_weights)
         with tf.variable_scope(
-                '%s/g1_bn' % self.var_scope,
+                '%s/g1_bn_t%s' % (self.var_scope, i0),
                 reuse=self.scope_reuse) as scope:
             g1_intermediate = tf.contrib.layers.batch_norm(
                 inputs=g1_intermediate + self.gain_bias,
@@ -346,14 +358,14 @@ class hGRU(object):
             symmetric_weights=self.symmetric_weights)
         return c1
 
-    def circuit_output(self, h1):
+    def circuit_output(self, h1, i0):
         """Calculate mix and exc horizontal activities."""
         g2_intermediate = self.conv_2d_op(
             data=h1,
             weights=self.mix_kernels,
             symmetric_weights=self.symmetric_gate_weights)
         with tf.variable_scope(
-                '%s/g2_bn' % self.var_scope,
+                '%s/g2_bn_t%s' % (self.var_scope, i0),
                 reuse=self.scope_reuse) as scope:
             g2_intermediate = tf.contrib.layers.batch_norm(
                 inputs=g2_intermediate + self.mix_bias,
@@ -378,8 +390,8 @@ class hGRU(object):
 
     def input_integration(self, x, c1, h2):
         """Integration on the input."""
-        return self.recurrent_nl((
-            x - ((self.alpha * h2 + self.mu) * c1)) * self.mask)
+        return self.recurrent_nl(
+            x - ((self.alpha * h2 + self.mu) * c1))
 
     def output_integration(self, h1, c2, g2, h2):
         """Integration on the output."""
@@ -388,20 +400,20 @@ class hGRU(object):
             e = self.gamma * c2
             a = self.kappa * (h1 + e)
             m = self.omega * (h1 * e)
-            h2_hat = self.recurrent_nl((a + m) * self.mask)
+            h2_hat = self.recurrent_nl(a + m)
         else:
             # Additive gating I + P + Q
             h2_hat = self.recurrent_nl(
                 h1 + self.gamma * c2)
         return (g2 * h2) + ((1 - g2) * h2_hat)
 
-    def full(self, i0, x, h1, h2):
+    def full(self, i0, x, h2):
         """hGRU body."""
         # Circuit input receives recurrent output h2
-        c1 = self.circuit_input(h2) * self.mask
+        c1 = self.circuit_input(h2=h2, i0=i0)
 
         with tf.variable_scope(
-                '%s/c1_bn' % self.var_scope,
+                '%s/c1_bn_t%s' % (self.var_scope, i0),
                 reuse=self.scope_reuse) as scope:
             c1 = tf.contrib.layers.batch_norm(
                 inputs=c1,
@@ -413,7 +425,7 @@ class hGRU(object):
                 updates_collections=None,
                 scope=scope,
                 reuse=self.reuse,
-                is_training=self.train) * self.mask
+                is_training=self.train)
 
         # Calculate input (-) integration: h1 (4)
         h1 = self.input_integration(
@@ -422,9 +434,9 @@ class hGRU(object):
             h2=h2)
 
         # Circuit output receives recurrent input h1
-        c2, g2 = self.circuit_output(h1)
+        c2, g2 = self.circuit_output(h1=h1, i0=i0)
         with tf.variable_scope(
-                '%s/c2_bn' % self.var_scope,
+                '%s/c2_bn_t%s' % (self.var_scope, i0),
                 reuse=self.scope_reuse) as scope:
             c2 = tf.contrib.layers.batch_norm(
                 inputs=c2,
@@ -436,7 +448,7 @@ class hGRU(object):
                 updates_collections=None,
                 scope=scope,
                 reuse=self.reuse,
-                is_training=self.train) * self.mask
+                is_training=self.train)
 
         # Calculate output (+) integration: h2 (8, 9)
         h2 = self.output_integration(
@@ -450,7 +462,7 @@ class hGRU(object):
 
         # Iterate loop
         i0 += 1
-        return i0, x, h1, h2
+        return i0, x, h2
 
     def condition(self, i0, x, h1, h2):
         """While loop halting condition."""
@@ -460,40 +472,29 @@ class hGRU(object):
         """Run the backprop version of the CCircuit."""
         self.prepare_tensors()
         x_shape = x.get_shape().as_list()
-        i0 = tf.constant(0)
+        i0 = 0  # tf.constant(0)
         if self.hidden_init == 'identity':
-            h1 = tf.identity(x)
             h2 = tf.identity(x)
         elif self.hidden_init == 'random':
-            h1 = initialization.xavier_initializer(
-                shape=x_shape,
-                uniform=self.normal_initializer,
-                mask=None)
             h2 = initialization.xavier_initializer(
                 shape=x_shape,
                 uniform=self.normal_initializer,
                 mask=None)
         elif self.hidden_init == 'zeros':
-            h1 = tf.zeros_like(x)
             h2 = tf.zeros_like(x)
+        elif self.hidden_init == 'learned':
+            h2 = tf.get_variable(
+                name='%s_h2_state' % self.layer_name,
+                dtype=self.dtype,
+                initializer=initialization.xavier_initializer(
+                    shape=x_shape,
+                    uniform=self.normal_initializer),
+                trainable=self.train)
         else:
             raise RuntimeError
 
-        # While loop
-        elems = [
-            i0,
-            x,
-            h1,
-            h2
-        ]
-        returned = tf.while_loop(
-            self.condition,
-            self.full,
-            loop_vars=elems,
-            back_prop=True,
-            swap_memory=False)
-
-        # Prepare output
-        i0, x, h1, h2 = returned
+        # Loop
+        for idx in range(self.timesteps):
+            i0, x, h2 = self.full(i0=i0, x=x, h2=h2)
         return h2
 

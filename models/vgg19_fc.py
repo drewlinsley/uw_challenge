@@ -14,7 +14,6 @@ def build_model(data_tensor, reuse, training, output_shape):
         mask = conv.create_mask(data_tensor)  # , dilate=[[[3]]])
         with tf.variable_scope('freeze', reuse=reuse):
             net = vgg19.Model(
-                trainable=training,
                 vgg19_npy_path='/media/data_cifs/uw_challenge/checkpoints/vgg19.npy')
             x, mask = net.build(
                 rgb=data_tensor,
