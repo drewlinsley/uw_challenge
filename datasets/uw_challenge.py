@@ -17,7 +17,7 @@ class data_processing(object):
         self.config = Config()
         self.im_size = [80, 80, 3]  # 600, 600
         self.model_input_image_size = [224, 224, 3]  # [107, 160, 3]
-        self.output_size = [19]
+        self.output_size = [18]
         self.label_size = self.output_size
         self.default_loss_function = 'cce'
         self.score_metric = 'accuracy'
@@ -67,7 +67,7 @@ class data_processing(object):
         test_masks = (test_images == 0).astype(np.float32)
         train_masks = np.median(train_masks, axis=[0, 3]).astype(np.float32)[None, ..., None]
         test_masks = np.median(test_masks, axis=[0, 3]).astype(np.float32)[None, ..., None]
-        train_labels = neural_data.as_matrix()
+        train_labels = neural_data.as_matrix()[:, 1:]  # First column is index
 
         # Create validation set
         val_idx = np.in1d(np.arange(len(train_images)), np.arange(split_start, split_start + split_size))

@@ -25,7 +25,7 @@ def build_model(data_tensor, reuse, training, output_shape):
                 filters=32,
                 kernel_size=(1, 1),
                 padding='same')
-            x *= mask
+            # x *= mask
             layer_hgru = hgru.hGRU(
                 layer_name='hgru_1',
                 x_shape=x.get_shape().as_list(),
@@ -36,7 +36,7 @@ def build_model(data_tensor, reuse, training, output_shape):
                 aux={'reuse': False, 'constrain': False, 'recurrent_nl': tf.nn.relu},
                 train=training)
             h2 = layer_hgru.build(x)
-            h2 *= mask
+            # h2 *= mask
 
         with tf.variable_scope('scratch_readout', reuse=reuse):
             x = normalization.batch(
@@ -45,22 +45,24 @@ def build_model(data_tensor, reuse, training, output_shape):
                 name='hgru_bn',
                 reuse=reuse,
                 training=training)        
-            # x = tf.contrib.layers.flatten(x)
-            # x = tf.layers.dense(inputs=x, units=output_shape)
-
-        x, ro_weights = conv.full_mask_readout(
-            activity=x,
-            reuse=reuse,
-            training=training,
-            mask=mask,
-            output_shape=output_shape,
-            # kernel_size=[21, 21],
-            REDUCE=tf.reduce_max,
-            learnable_pool=False)
+            crop = x[:, 21:35, 22:33, :]
+            x = tf.contrib.layers.flatten(crop)
+            x = tf.layers.dense(inputs=x, units=output_shape)
+            # h2 *= mask
+        # x, ro_weights = conv.full_mask_readout(
+        #     activity=x,
+        #     reuse=reuse,
+        #     training=training,
+        #     mask=mask,
+        #     output_shape=output_shape,
+        #     # kernel_size=[21, 21],
+        #     REDUCE=tf.reduce_max,
+        #     learnable_pool=False)
     extra_activities = {
         'activity': net.conv1_1,
         'h2': h2,
         'mask': mask,
+        'crop': crop
         # 'ro_weights': ro_weights
     }
     return x, extra_activities

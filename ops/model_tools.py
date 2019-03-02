@@ -286,6 +286,14 @@ def build_model(
             logits=train_logits,
             loss_type=config.loss_function,
             loss_weights=config.loss_weights)
+
+        # Add regularization
+        wd = (1e-4 * tf.add_n(
+            [tf.nn.l2_loss(v) for v in tf.trainable_variables()
+            if 'batch_normalization' not in v.name and
+            'block' not in v.name and
+            'training' not in v.name]))
+        train_loss += wd
         if isinstance(config.loss_function, list):
             val_loss = config.val_loss_function
         else:

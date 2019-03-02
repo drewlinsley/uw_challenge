@@ -18,7 +18,7 @@ def experiment_params():
         'hgru_bn',
     ]
 
-    exp['validation_period'] = [10]
+    exp['validation_period'] = [50]
     exp['validation_steps'] = [1]
     exp['shuffle_val'] = [True]  # Shuffle val data.
     exp['shuffle_train'] = [True]
@@ -32,7 +32,7 @@ def experiment_params():
     # exp['freeze_lr'] = [1e-5]
 
     exp['loss_function'] = [['mse_nn', 'pearson']]
-    exp['loss_weights'] = [[1, 1]]
+    exp['loss_weights'] = [[1, 0.5]]
     # exp['loss_function'] = ['mse_nn']
     # exp['loss_weights'] = [1]  # [[1, 0.2]]
     exp['val_loss_function'] = ['mse_nn']

@@ -267,11 +267,6 @@ def full_mask_readout(
             shape=vol_shape[1:3] + [vol_shape[-1], np.squeeze(output_shape)],
             trainable=training,
             initializer=tf.initializers.variance_scaling())
-        space_bias = tf.get_variable(
-            name='readout_spatial_bias',
-            shape=[np.squeeze(output_shape)],
-            trainable=training,
-            initializer=tf.initializers.zeros())
         space_kernel *= tf.transpose(mask, (1, 2, 0, 3))  # Throw out masked connections
 
         # Learn a kernel per neuron
@@ -281,10 +276,13 @@ def full_mask_readout(
             strides=strides,
             padding=padding,
             name='spatial_conv')
-        activity += space_bias
-
         if mask is not None:
             activity *= mask  # Mask gradient for good measure
+        activity = normalization.batch(
+            bottom=activity,
+            name='spatial_bn',
+            renorm=False,
+            training=training)
 
         # Pool neurons
         if learnable_pool:
@@ -299,7 +297,12 @@ def full_mask_readout(
             return tf.reduce_sum(activity * a, reduction_indices=[1, 2]), space_kernel
         else:
             activity = activity[:, 21:35, 22:33, :]
-            return REDUCE(activity, reduction_indices=[1, 2]), space_kernel
+            activity = REDUCE(activity, reduction_indices=[1, 2])
+            return tf.layers.dense(
+                inputs=activity,
+                units=np.squeeze(output_shape),
+                name='scaling_readout',
+                trainable=training), space_kernel
 
 
 def readout_layer(

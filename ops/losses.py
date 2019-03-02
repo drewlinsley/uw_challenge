@@ -70,7 +70,8 @@ def derive_loss_fun(labels, logits, loss_type):
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
-        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
+        return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
+        # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
     elif loss_type == 'mse_nn_unnorm':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
@@ -80,7 +81,8 @@ def derive_loss_fun(labels, logits, loss_type):
         logits = sigma * logits + mu
         labels = sigma * labels + mu
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
-        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
+        return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
+        # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
     elif loss_type == 'l2_image':
         logits = tf.cast(logits, tf.float32)
         return tf.nn.l2_loss(labels - logits)
@@ -121,7 +123,8 @@ def derive_score(labels, logits, score_type, loss_type, dataset):
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
-        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
+        # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
+        return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
     elif score_type == 'mse_nn_unnorm':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
@@ -131,7 +134,8 @@ def derive_score(labels, logits, score_type, loss_type, dataset):
         logits = sigma * logits + mu
         labels = sigma * labels + mu
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
-        return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
+        # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
+        return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
     elif score_type == 'pearson' or score_type == 'correlation':
         logits = tf.cast(logits, tf.float32)
         return pearson_dissimilarity(
@@ -209,6 +213,7 @@ def pearson_dissimilarity(labels, logits, REDUCE, mask=None, eps_1=1e-4, eps_2=1
             count))
     corr = cov / (tf.multiply(x1_std, x2_std) + eps_2)
     if mask is not None:
+        import ipdb;ipdb.set_trace()
         corr *= mask
     if REDUCE is not None:
         corr = REDUCE(corr)
