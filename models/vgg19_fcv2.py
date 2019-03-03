@@ -3,6 +3,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from layers.feedforward import vgg19, conv
+from layers.feedforward import normalization
 
 
 def build_model(data_tensor, reuse, training, output_shape):
@@ -21,20 +22,11 @@ def build_model(data_tensor, reuse, training, output_shape):
                 mask=mask,
                 training=training)
         with tf.variable_scope('scratch', reuse=reuse):
-            layer_hgru = hgru.hGRU(
-                layer_name='hgru_1',
-                x_shape=x.get_shape().as_list(),
-                mask=mask,
-                timesteps=8,
-                h_ext=7,
-                strides=[1, 1, 1, 1],
-                padding='SAME',
-                aux={'reuse': False, 'constrain': False, 'recurrent_nl': tf.nn.relu},
-                train=training)
-            h2 = layer_hgru.build(x)
-            h2 *= mask
-            x = tf.contrib.layers.flatten(x)
+            x = tf.layers.batch_normalization(inputs=x, training=training, name='ro_bn')
+            crop = x[:, 15:45, 15:45, :]
+            x = tf.contrib.layers.flatten(crop)
             x = tf.layers.dense(inputs=x, units=output_shape)
+    x = tf.abs(x)
     mean = moments['mean']
     sd = moments['std']
     extra_activities = {

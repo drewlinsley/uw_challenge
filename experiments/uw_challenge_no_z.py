@@ -18,18 +18,18 @@ def experiment_params():
         'hgru_bn',
     ]
 
-    exp['validation_period'] = [50]
+    exp['validation_period'] = [100]
     exp['validation_steps'] = [1]
-    exp['shuffle_val'] = [True]  # Shuffle val data.
+    exp['shuffle_val'] = [False]  # Shuffle val data.
     exp['shuffle_train'] = [True]
     exp['save_checkpoints'] = [1]
-    exp['save_activities'] = [False]
+    exp['save_activities'] = [True]
     exp['save_weights'] = [False]
     exp['save_gradients'] = [False]
 
     # Model hyperparameters
     exp['lr'] = [1e-2]
-    # exp['freeze_lr'] = [1e-5]
+    # exp['freeze_lr'] = [1e-6]
 
     exp['loss_function'] = [['mse_nn', 'pearson']]
     exp['loss_weights'] = [[1, 0.5]]
@@ -37,7 +37,7 @@ def experiment_params():
     # exp['loss_weights'] = [1]  # [[1, 0.2]]
     exp['val_loss_function'] = ['mse_nn']
     exp['score_function'] = ['mse_nn']
-    exp['optimizer'] = ['nadam']
+    exp['optimizer'] = ['momentum']
     exp['train_batch_size'] = [50]
     exp['val_batch_size'] = [50]
     exp['epochs'] = [2000]

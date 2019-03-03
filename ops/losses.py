@@ -72,17 +72,6 @@ def derive_loss_fun(labels, logits, loss_type):
         mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
         return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
         # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
-    elif loss_type == 'mse_nn_unnorm':
-        logits = tf.cast(logits, tf.float32)
-        labels = tf.cast(labels, tf.float32)
-        moments = np.load(os.path.join('moments', '%s.npz' % dataset))
-        mu = moments['mean']
-        sigma = moments['std']
-        logits = sigma * logits + mu
-        labels = sigma * labels + mu
-        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
-        return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
-        # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
     elif loss_type == 'l2_image':
         logits = tf.cast(logits, tf.float32)
         return tf.nn.l2_loss(labels - logits)

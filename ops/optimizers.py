@@ -90,6 +90,7 @@ def get_optimizer_fun(
                 clip_gradients=clip_gradients)
         else:
             optim = optim(lr)
+        # import ipdb;ipdb.set_trace()
         if var_list:
             gvs = optim.compute_gradients(loss, var_list=var_list)
         else:

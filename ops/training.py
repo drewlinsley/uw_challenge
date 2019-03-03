@@ -11,6 +11,16 @@ from tqdm import tqdm
 from db import db
 
 
+def update_lr(config, step):
+    """Implement a LR schedule."""
+    if config.optimizer == 'momentum':
+        if step > 0 and (step % 200) == 0:
+            old_lr = config.lr
+            config.lr /= 2
+            print 'Reducing LR from %s -> %s' % (old_lr, config.lr)
+    return config
+
+
 def val_status(
         log,
         dt,
@@ -147,6 +157,7 @@ def save_progress(
         config,
         weight_dict,
         it_val_dict,
+        it_train_dict,
         exp_label,
         step,
         directories,
@@ -164,11 +175,13 @@ def save_progress(
         use_db,
         summary_op,
         summary_writer,
+        val_dict,
+        train_dict,
         save_activities,
         save_gradients,
         save_checkpoints):
     """Save progress and important data."""
-    if config.save_weights and val_check:
+    if config.save_weights and len(val_check):
         it_weights = {
             k: it_val_dict[k] for k in weight_dict.keys()}
         py_utils.save_npys(
@@ -178,7 +191,7 @@ def save_progress(
                 step),
             output_string=directories['weights'])
 
-    if save_activities and val_check:
+    if save_activities and len(val_check):
         py_utils.save_npys(
             data=it_val_dict,
             model_name='%s_%s' % (
@@ -199,7 +212,7 @@ def save_progress(
         val_check = val_check[0]
         val_perf[val_check] = val_loss
               
-    if save_gradients and val_check:
+    if save_gradients and len(val_check):
         # np.savez(
         #     os.path.join(
         #         config.results,
@@ -226,8 +239,14 @@ def save_progress(
             summary_path=directories['summaries'])
 
     # Summaries -- not working atm
-    # summary_str = sess.run(summary_op)
-    # summary_writer.add_summary(summary_str, step)
+    feed_dict = {
+        train_dict['train_labels']: it_train_dict['train_labels'],
+        train_dict['train_logits']: it_train_dict['train_logits'],
+        val_dict['val_labels']: it_val_dict['val_labels'],
+        val_dict['val_logits']: it_val_dict['val_logits'],
+    }
+    summary_str = sess.run(summary_op, feed_dict=feed_dict)
+    summary_writer.add_summary(summary_str, step)
     return val_perf
 
 
@@ -317,6 +336,7 @@ def training_loop(
         save_weights=False,
         save_checkpoints=False,
         save_activities=False,
+        early_stop=10,  # If you have checked 10 times with no new checkpoints
         save_gradients=False):
     """Run the model training loop."""
     if checkpoint is not None:
@@ -383,7 +403,8 @@ def training_loop(
                             for im in it_train_images])
                 feed_dict = {
                     train_dict['train_images']: it_train_images,
-                    train_dict['train_labels']: it_train_labels
+                    train_dict['train_labels']: it_train_labels,
+                    config.lr_placeholder: config.lr
                 }
                 (
                     train_score,
@@ -393,9 +414,6 @@ def training_loop(
                     sess=sess,
                     train_dict=train_dict,
                     feed_dict=feed_dict)
-                if step == 250:
-                    # print np.sum(it_val_dict['ro_weights'] != it_train_dict['ro_weights'])
-                    import ipdb;ipdb.set_trace()
                 if step % config.validation_period == 0:
                     val_score, val_lo, it_val_dict, duration = validation_step(
                         sess=sess,
@@ -410,11 +428,21 @@ def training_loop(
                     # Save progress and important data
                     try:
                         val_check = np.where(val_lo < val_perf)[0]
+                        if not len(val_check):
+                            it_early_stop -= 1
+                            print 'Deducted from early stop count.'
+                        else:
+                            it_early_stop = early_stop  # reset
+                            print 'Reset early stop count.'
+                        if it_early_stop <= 0:
+                            print 'Early stop triggered. Ending training early.'
+                            return
                         val_perf = save_progress(
                             config=config,
                             val_check=val_check,
                             weight_dict=weight_dict,
                             it_val_dict=it_val_dict,
+                            it_train_dict=it_train_dict,
                             exp_label=exp_label,
                             step=step,
                             directories=directories,
@@ -431,10 +459,14 @@ def training_loop(
                             use_db=use_db,
                             summary_op=summary_op,
                             summary_writer=summary_writer,
+                            val_dict=val_dict,
+                            train_dict=train_dict,
                             save_activities=save_activities,
                             save_gradients=save_gradients,
                             save_checkpoints=save_checkpoints)
+                        val_perf[val_check] = val_lo
                     except Exception as e:
+                        import ipdb;ipdb.set_trace()
                         log.info('Failed to save checkpoint: %s' % e)
 
                     # Training status and validation accuracy
@@ -461,91 +493,12 @@ def training_loop(
                         score_function=config.score_function,
                         train_score=train_score)
 
-                # End iteration
-                val_perf = np.concatenate([val_perf, [val_lo]])
-                step += 1
+                # Implement lr schedule
+                config = update_lr(config, step)
 
+                # End iteration
+                step += 1
     else:
-        try:
-            while not coord.should_stop():
-                (
-                    train_score,
-                    train_loss,
-                    it_train_dict,
-                    duration) = training_step(
-                    sess=sess,
-                    train_dict=train_dict)
-                if step % config.validation_period == 0:
-                    val_score, val_lo, it_val_dict, duration = validation_step(
-                        sess=sess,
-                        val_dict=val_dict,
-                        config=config,
-                        log=log)
-
-                    # Save progress and important data
-                    try:
-                        val_check = np.where(val_lo < val_perf)[0]
-                        val_perf = save_progress(
-                            config=config,
-                            val_check=val_check,
-                            weight_dict=weight_dict,
-                            it_val_dict=it_val_dict,
-                            exp_label=exp_label,
-                            step=step,
-                            directories=directories,
-                            sess=sess,
-                            saver=saver,
-                            val_score=val_score,
-                            val_loss=val_lo,
-                            val_perf=val_perf,
-                            train_score=train_score,
-                            train_loss=train_loss,
-                            timer=duration,
-                            num_params=num_params,
-                            log=log,
-                            use_db=use_db,
-                            summary_op=summary_op,
-                            summary_writer=summary_writer,
-                            save_activities=save_activities,
-                            save_gradients=save_gradients,
-                            save_checkpoints=save_checkpoints)
-                    except Exception as e:
-                        log.info('Failed to save checkpoint: %s' % e)
-
-                    # Training status and validation accuracy
-                    val_status(
-                        log=log,
-                        dt=datetime.now(),
-                        step=step,
-                        train_loss=train_loss,
-                        rate=config.val_batch_size / duration,
-                        timer=float(duration),
-                        score_function=config.score_function,
-                        train_score=train_score,
-                        val_score=val_score,
-                        summary_dir=directories['summaries'])
-                else:
-                    # Training status
-                    train_status(
-                        log=log,
-                        dt=datetime.now(),
-                        step=step,
-                        train_loss=train_loss,
-                        rate=config.val_batch_size / duration,
-                        timer=float(duration),
-                        score_function=config.score_function,
-                        train_score=train_score)
-
-                # End iteration
-                step += 1
-        except tf.errors.OutOfRangeError:
-            log.info(
-                'Done training for %d epochs, %d steps.' % (
-                    config.epochs, step))
-            log.info('Saved to: %s' % directories['checkpoints'])
-        finally:
-            coord.request_stop()
-        coord.join(threads)
-        sess.close()
+        raise NotImplementedError
     return
 

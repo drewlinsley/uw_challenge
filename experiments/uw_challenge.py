@@ -23,7 +23,7 @@ def experiment_params():
     exp['shuffle_val'] = [True]  # Shuffle val data.
     exp['shuffle_train'] = [True]
     exp['save_checkpoints'] = [1]
-    exp['save_activities'] = [False]
+    exp['save_activities'] = [True]
     exp['save_weights'] = [False]
     exp['save_gradients'] = [False]
 
@@ -36,7 +36,7 @@ def experiment_params():
     # exp['loss_function'] = ['mse_nn']
     # exp['loss_weights'] = [1]  # [[1, 0.2]]
     exp['val_loss_function'] = ['mse_nn']
-    exp['score_function'] = ['mse_nn']
+    exp['score_function'] = ['mse_nn_unnorm']
     exp['optimizer'] = ['nadam']
     exp['train_batch_size'] = [50]
     exp['val_batch_size'] = [50]

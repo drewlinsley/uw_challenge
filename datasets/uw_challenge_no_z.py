@@ -59,7 +59,7 @@ class data_processing(object):
         if split_start is None:
             split_size, split_start = 50, 0  # Take first 50 images for validation
         image_data = np.load(self.image_data)
-        image_data = image_data[..., [2, 1, 0]]
+        # image_data = image_data[..., [2, 1, 0]]
         neural_data = pd.read_csv(self.neural_data)
         test_images = image_data[:self.test_data_split]
         train_images = image_data[self.test_data_split:]

@@ -23,6 +23,7 @@ def build_model(data_tensor, reuse, training, output_shape):
         with tf.variable_scope('scratch', reuse=reuse):
             x = tf.contrib.layers.flatten(x)
             x = tf.layers.dense(inputs=x, units=output_shape)
+    x = tf.abs(x)
     mean = moments['mean']
     sd = moments['std']
     extra_activities = {

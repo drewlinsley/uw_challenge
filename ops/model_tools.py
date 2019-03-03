@@ -337,11 +337,12 @@ def build_model(
 
         # Build optimizer
         freeze_lr = None
+        config.lr_placeholder = tf.placeholder(tf.float32, name='main_lr', shape=[])
         if hasattr(config, 'freeze_lr'):
             freeze_lr = config.freeze_lr
         train_op = optimizers.get_optimizer(
             train_loss,
-            config.lr,
+            config.lr_placeholder,
             config.optimizer,
             freeze_lr=freeze_lr,
             dtype=train_images.dtype)
