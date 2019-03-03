@@ -288,12 +288,18 @@ def build_model(
             loss_weights=config.loss_weights)
 
         # Add regularization
-        wd = (1e-4 * tf.add_n(
-            [tf.nn.l2_loss(v) for v in tf.trainable_variables()
-            if 'batch_normalization' not in v.name and
-            'block' not in v.name and
-            'training' not in v.name]))
-        train_loss += wd
+        # wd = (1e-4 * tf.add_n(
+        #     [tf.nn.l2_loss(v) for v in tf.trainable_variables()
+        #     if 'batch_normalization' not in v.name and
+        #     'block' not in v.name and
+        #     'training' not in v.name]))
+        wd_vars = [v for v in tf.trainable_variables() if 'regularize' in v.name and 'batch_normalization' not in v.name and 'training' not in v.name]
+        if len(wd_vars):
+            if 0:
+                wd = 1e-4 * tf.add_n([tf.reduce_mean(tf.abs(v)) for v in wd_vars])
+            else:
+                wd = 1e-4 * tf.add_n([tf.nn.l2_loss(v) for v in wd_vars])
+            train_loss += wd
         if isinstance(config.loss_function, list):
             val_loss = config.val_loss_function
         else:

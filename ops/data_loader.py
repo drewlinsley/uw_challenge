@@ -218,11 +218,12 @@ def image_augmentations(
             image = image - [123.68, 116.78, 103.94]
         if 'random_contrast' in data_augmentations:
             assert len(image.get_shape()) == 3, '4D not implemented yet.'
-            image = tf.image.random_contrast(image, lower=0.2, upper=1.8)
+            image = tf.image.random_contrast(image, lower=0.0, upper=0.15)
             print 'Applying random contrast.'
         if 'random_brightness' in data_augmentations:
             assert len(image.get_shape()) == 3, '4D not implemented yet.'
-            image = tf.image.random_brightness(image, max_delta=63.)
+            image = tf.image.random_brightness(image, max_delta=0.15)
+            image = tf.maximum(tf.minimum(image, 1.), 0.)
             print 'Applying random brightness.'
         if 'grayscale' in data_augmentations and im_size_check:
             # image = tf.image.rgb_to_grayscale(image)

@@ -13,8 +13,8 @@ from db import db
 
 def update_lr(config, step):
     """Implement a LR schedule."""
-    if config.optimizer == 'momentum':
-        if step > 0 and (step % 200) == 0:
+    if config.optimizer == 'momentum' or config.optimizer == 'adam':
+        if step > 0 and (step % 100) == 0:
             old_lr = config.lr
             config.lr /= 2
             print 'Reducing LR from %s -> %s' % (old_lr, config.lr)
@@ -31,12 +31,14 @@ def val_status(
         score_function,
         train_score,
         val_score,
+        val_loss,
+        best_val,
         summary_dir):
     """Print training status."""
     format_str = (
         '%s: step %d, loss = %.2f (%.1f examples/sec; '
         '%.3f sec/batch) | Training %s = %s | '
-        'Validation %s = %s | logdir = %s')
+        'Validation %s = %s | Validation loss = %s | Best val loss = %s | logdir = %s')
     log.info(
         format_str % (
             dt,
@@ -48,6 +50,8 @@ def val_status(
             train_score,
             score_function,
             val_score,
+            val_loss,
+            best_val,
             summary_dir))
 
 
@@ -336,7 +340,7 @@ def training_loop(
         save_weights=False,
         save_checkpoints=False,
         save_activities=False,
-        early_stop=10,  # If you have checked 10 times with no new checkpoints
+        early_stop=5,  # If you have checked 10 times with no new checkpoints
         save_gradients=False):
     """Run the model training loop."""
     if checkpoint is not None:
@@ -480,6 +484,8 @@ def training_loop(
                         score_function=config.score_function,
                         train_score=train_score,
                         val_score=val_score,
+                        val_loss=val_lo,
+                        best_val=np.min(val_perf),
                         summary_dir=directories['summaries'])
                 else:
                     # Training status
@@ -495,6 +501,8 @@ def training_loop(
 
                 # Implement lr schedule
                 config = update_lr(config, step)
+                # if step > 0 and step % 250 == 0:
+                #     import ipdb;ipdb.set_trace()
 
                 # End iteration
                 step += 1

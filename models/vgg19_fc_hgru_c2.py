@@ -2,7 +2,7 @@
 import os
 import numpy as np
 import tensorflow as tf
-from layers.feedforward import vgg19, conv
+from layers.feedforward import vgg19_nomask as vgg19, conv
 from layers.feedforward import normalization
 
 
@@ -22,10 +22,18 @@ def build_model(data_tensor, reuse, training, output_shape):
                 mask=mask,
                 training=training)
         with tf.variable_scope('scratch', reuse=reuse):
-            x = tf.layers.batch_normalization(inputs=x, training=training, name='ro_bn')
-            crop = x[:, 15:45, 15:45, :]
-            x = tf.contrib.layers.flatten(crop)
-            x = tf.layers.dense(inputs=x, units=output_shape)
+            x = tf.layers.batch_normalization(
+                inputs=x,
+                training=training,
+                name='ro_bn',
+                reuse=reuse is not None)
+            x = x[:, 15:45, 15:45, :]
+            x = tf.layers.conv2d(
+                inputs=x,
+                kernel_size=(30, 30),
+                filters=output_shape,
+                padding='valid')
+            x = tf.contrib.layers.flatten(x)
     x = tf.abs(x)
     mean = moments['mean']
     sd = moments['std']
