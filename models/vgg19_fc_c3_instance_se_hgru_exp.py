@@ -4,9 +4,11 @@ import numpy as np
 import tensorflow as tf
 from layers.feedforward import vgg19_nomask as vgg19, conv
 from layers.feedforward import normalization
+# from layers.recurrent import hgru_bn_while_shared as hgru
+from layers.recurrent import hgru_bn_for_ln_shared as hgru
 
 
-def build_model(data_tensor, reuse, training, output_shape, dilate=False):
+def build_model(data_tensor, reuse, training, output_shape, renorm=False, dilate=False):
     """Create the hgru from Learning long-range..."""
     if isinstance(output_shape, list):
         output_shape = output_shape[0]
@@ -29,9 +31,23 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
             x = tf.layers.conv2d(
                 inputs=x,
                 kernel_size=(1, 1),
-                filters=48,  # 24
-                activation=tf.nn.elu,  # changed from relu
+                filters=32,  # 24
+                activation=tf.nn.elu,
                 padding='same')
+            x = tf.contrib.layers.instance_norm(
+                inputs=x)
+
+            # Add hgru here
+            layer_hgru = hgru.hGRU(
+                layer_name='hgru_1',
+                x_shape=x.get_shape().as_list(),
+                timesteps=8,
+                h_ext=3,  # 5
+                strides=[1, 1, 1, 1],
+                padding='SAME',
+                aux={'reuse': False, 'constrain': False, 'recurrent_nl': tf.nn.tanh},
+                train=training)
+            x = layer_hgru.build(x)
             x = tf.contrib.layers.instance_norm(
                 inputs=x)
 
@@ -39,14 +55,9 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
             g = tf.reduce_max(x, reduction_indices=[1, 2])
             g = tf.layers.dense(inputs=g, units=12, activation=tf.nn.elu)
             g = tf.contrib.layers.instance_norm(inputs=g)
-            g = tf.layers.dense(inputs=g, units=48, activation=None)
-            if 1:
-                g = tf.sigmoid(g)  # tf.nn.tanh(g)
-            else:
-                g = tf.nn.tanh(g)
+            g = tf.layers.dense(inputs=g, units=32, activation=tf.sigmoid)
             x *= tf.expand_dims(tf.expand_dims(g, axis=1), axis=1)
 
-            # Add hgru here
             if dilate:
                 x = tf.layers.separable_conv2d(
                     inputs=x,

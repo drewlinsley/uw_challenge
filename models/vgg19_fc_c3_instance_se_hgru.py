@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from layers.feedforward import vgg19_nomask as vgg19, conv
 from layers.feedforward import normalization
+from layers.recurrent import hgru_bn_for_ln as hgru
 
 
 def build_model(data_tensor, reuse, training, output_shape, dilate=False):
@@ -21,7 +22,7 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
                 up_to='c3',
                 mask=mask,
                 training=training)
-            x = x[:, 8:18, 8:18, :]
+            x = x[:, 7:19, 7:19, :]
             x = tf.contrib.layers.instance_norm(
                 inputs=x)
 
@@ -30,7 +31,7 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
                 inputs=x,
                 kernel_size=(1, 1),
                 filters=48,  # 24
-                activation=tf.nn.elu,  # changed from relu
+                activation=tf.nn.relu,
                 padding='same')
             x = tf.contrib.layers.instance_norm(
                 inputs=x)
@@ -47,10 +48,22 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
             x *= tf.expand_dims(tf.expand_dims(g, axis=1), axis=1)
 
             # Add hgru here
+            layer_hgru = hgru.hGRU(
+                layer_name='hgru_1',
+                x_shape=x.get_shape().as_list(),
+                timesteps=5,  # 8
+                h_ext=1,  # 5
+                strides=[1, 1, 1, 1],
+                padding='SAME',
+                aux={'reuse': False, 'constrain': False, 'recurrent_nl': tf.nn.relu},
+                train=training)
+            x = layer_hgru.build(x)
+            x = tf.contrib.layers.instance_norm(
+                inputs=x)
             if dilate:
                 x = tf.layers.separable_conv2d(
                     inputs=x,
-                    kernel_size=(5, 5),
+                    kernel_size=(6, 6),
                     depth_multiplier=1,
                     dilation_rate=(2, 2),
                     filters=output_shape,
@@ -59,7 +72,7 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
             else:
                 x = tf.layers.separable_conv2d(
                     inputs=x,
-                    kernel_size=(10, 10),
+                    kernel_size=(12, 12),
                     depth_multiplier=1,
                     filters=output_shape,
                     padding='valid')

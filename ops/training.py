@@ -14,7 +14,7 @@ from db import db
 def update_lr(config, step):
     """Implement a LR schedule."""
     if config.optimizer == 'momentum' or config.optimizer == 'adam':
-        if step > 0 and (step % 200) == 0:  # Worked well @ 100, v well at 150
+        if step > 0 and (step % 250) == 0:  # Worked well @ 100, v well at 150
             old_lr = config.lr
             config.lr /= 2
             print 'Reducing LR from %s -> %s' % (old_lr, config.lr)
