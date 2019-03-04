@@ -266,7 +266,7 @@ def build_model(
             'test_logits': test_logits
         }
         if len(h_check):
-            val_dict['homunculus'] = h_check[0]
+            test_dict['homunculus'] = h_check[0]
     else:
         with tf.device(gpu_device):
             train_logits, train_vars = model_spec.build_model(
@@ -293,12 +293,12 @@ def build_model(
         #     if 'batch_normalization' not in v.name and
         #     'block' not in v.name and
         #     'training' not in v.name]))
-        wd_vars = [v for v in tf.trainable_variables() if 'regularize' in v.name and 'batch_normalization' not in v.name and 'training' not in v.name]
+        wd_vars = [v for v in tf.trainable_variables() if 'regularize' in v.name and 'batch_normalization' not in v.name and 'training' not in v.name and 'instance' not in v.name]
         if len(wd_vars):
-            if 1:
+            if 0:
                 wd = 1e-2 * tf.add_n([tf.reduce_mean(tf.abs(v)) for v in wd_vars])
             else:
-                wd = 1e-4 * tf.add_n([tf.nn.l2_loss(v) for v in wd_vars])
+                wd = 1e-2 * tf.add_n([tf.nn.l2_loss(v) for v in wd_vars])
             train_loss += wd
         if isinstance(config.loss_function, list):
             val_loss = config.val_loss_function

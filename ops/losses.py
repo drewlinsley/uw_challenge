@@ -66,6 +66,9 @@ def derive_loss_fun(labels, logits, loss_type):
         return tf.nn.l2_loss(tf.reshape(labels, [-1]) - logits)
     elif loss_type == 'mse':
         return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits))
+    elif loss_type == 'pw_mse_nn':
+        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        return tf.sqrt(tf.losses.mean_pairwise_squared_error(labels=labels, predictions=logits, weights=mask))
     elif loss_type == 'mse_nn':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
