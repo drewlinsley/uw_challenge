@@ -21,6 +21,7 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
                 up_to='c3',
                 mask=mask,
                 training=training)
+            x = x[:, 7:19, 7:19, :]
             x = tf.layers.batch_normalization(
                 inputs=x,
                 training=training,
@@ -38,7 +39,6 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
                 training=training,
                 name='ro_bn_2',
                 reuse=reuse is not None)
-            x = x[:, 7:19, 7:19, :]
             if dilate:
                 x = tf.layers.separable_conv2d(
                     inputs=x,

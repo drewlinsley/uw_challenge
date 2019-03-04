@@ -90,6 +90,19 @@ def derive_loss_fun(labels, logits, loss_type):
             logits=logits,
             mask=tf.greater_equal(labels, 0.),
             REDUCE=tf.reduce_mean)
+    elif loss_type == 'nn_sim':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        logit_sim = pdist_cos(
+            labels=logits,
+            logits=logits,
+            mask=mask)
+        label_sim = pdist_cos(
+            labels=labels,
+            logits=labels,
+            mask=mask)
+        return tf.sqrt(tf.reduce_mean((logit_sim - label_sim) ** 2))
     else:
         raise NotImplementedError(loss_type)
 
@@ -207,4 +220,29 @@ def pearson_dissimilarity(labels, logits, REDUCE, mask=None, eps_1=1e-4, eps_2=1
     if REDUCE is not None:
         corr = REDUCE(corr)
     return 1 - corr
+
+
+def pdist(labels, logits, mask=None):
+    "Euclidean elementwise distance."
+    if mask is not None:
+        labels *= mask
+        logits *= mask
+    r_A = tf.reduce_sum(labels ** 2, 1)
+    r_A = tf.reshape(r_A, [-1, 1])
+    r_B = tf.reduce_sum(logits ** 2, 1)
+    r_B = tf.reshape(r_B, [1, -1])
+    A = tf.matmul(labels, logits, transpose_b=True)
+    D = r_A - 2 * A + r_B
+    return D
+
+
+def pdist_cos(labels, logits, mask=None):
+    "Cosine elementwise distance."
+    if mask is not None:
+        labels *= mask
+        logits *= mask
+    labels = tf.nn.l2_normalize(labels, 0)
+    logits = tf.nn.l2_normalize(logits, 0)  # Try row-wise instead?
+    prod = tf.matmul(labels, logits, adjoint_b=True)
+    return 1 - prod
 

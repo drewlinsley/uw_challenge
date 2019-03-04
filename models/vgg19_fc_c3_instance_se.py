@@ -21,24 +21,30 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
                 up_to='c3',
                 mask=mask,
                 training=training)
-            x = tf.layers.batch_normalization(
-                inputs=x,
-                training=training,
-                name='ro_bn_1',
-                reuse=reuse is not None)
+            x = x[:, 7:19, 7:19, :]
+            x = tf.contrib.layers.instance_norm(
+                inputs=x)
+
         with tf.variable_scope('scratch_regularize', reuse=reuse):
             x = tf.layers.conv2d(
                 inputs=x,
                 kernel_size=(1, 1),
-                filters=32,  # 24
-                activation=tf.nn.elu,
+                filters=64,  # 24
+                activation=tf.nn.relu,
                 padding='same')
-            x = tf.layers.batch_normalization(
-                inputs=x,
-                training=training,
-                name='ro_bn_2',
-                reuse=reuse is not None)
-            x = x[:, 7:19, 7:19, :]
+            x = tf.contrib.layers.instance_norm(
+                inputs=x)
+
+            # Squeeze and excite
+            g = tf.reduce_max(x, reduction_indices=[1, 2])
+            g = tf.layers.dense(inputs=g, units=8, activation=tf.nn.relu)
+            g = tf.contrib.layers.instance_norm(inputs=g)
+            g = tf.layers.dense(inputs=g, units=64, activation=None)
+            if 1:
+                g = tf.sigmoid(g)  # tf.nn.tanh(g)
+            else:
+                g = tf.nn.tanh(g)
+            x *= tf.expand_dims(tf.expand_dims(g, axis=1), axis=1)
             if dilate:
                 x = tf.layers.separable_conv2d(
                     inputs=x,

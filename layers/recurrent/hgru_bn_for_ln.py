@@ -339,17 +339,10 @@ class hGRU(object):
         with tf.variable_scope(
                 '%s/g1_bn_t%s' % (self.var_scope, i0),
                 reuse=self.scope_reuse) as scope:
-            g1_intermediate = tf.contrib.layers.batch_norm(
+            g1_intermediate = tf.contrib.layers.instance_norm(
                 inputs=g1_intermediate + self.gain_bias,
                 scale=True,
-                center=False,
-                fused=True,
-                renorm=False,
-                param_initializers=self.param_initializer,
-                updates_collections=None,
-                scope=scope,
-                reuse=self.reuse,
-                is_training=self.train)
+                center=False)
         g1 = self.gate_nl(g1_intermediate)
 
         # Horizontal activities
@@ -368,17 +361,11 @@ class hGRU(object):
         with tf.variable_scope(
                 '%s/g2_bn_t%s' % (self.var_scope, i0),
                 reuse=self.scope_reuse) as scope:
-            g2_intermediate = tf.contrib.layers.batch_norm(
+            g2_intermediate = tf.contrib.layers.instance_norm(
                 inputs=g2_intermediate + self.mix_bias,
                 scale=True,
-                center=False,
-                fused=True,
-                renorm=False,
-                param_initializers=self.param_initializer,
-                updates_collections=None,
-                scope=scope,
-                reuse=self.reuse,
-                is_training=self.train)
+                center=False)
+
         # Calculate and apply dropout if requested
         g2 = self.gate_nl(g2_intermediate)
 
@@ -416,17 +403,10 @@ class hGRU(object):
         with tf.variable_scope(
                 '%s/c1_bn_t%s' % (self.var_scope, i0),
                 reuse=self.scope_reuse) as scope:
-            c1 = tf.contrib.layers.batch_norm(
+            c1 = tf.contrib.layers.instance_norm(
                 inputs=c1,
                 scale=True,
-                center=False,
-                fused=True,
-                renorm=False,
-                param_initializers=self.param_initializer,
-                updates_collections=None,
-                scope=scope,
-                reuse=self.reuse,
-                is_training=self.train)
+                center=False)
 
         # Calculate input (-) integration: h1 (4)
         h1 = self.input_integration(
@@ -439,17 +419,11 @@ class hGRU(object):
         with tf.variable_scope(
                 '%s/c2_bn_t%s' % (self.var_scope, i0),
                 reuse=self.scope_reuse) as scope:
-            c2 = tf.contrib.layers.batch_norm(
+            c2 = tf.contrib.layers.instance_norm(
                 inputs=c2,
                 scale=True,
-                center=False,
-                fused=True,
-                renorm=False,
-                param_initializers=self.param_initializer,
-                updates_collections=None,
-                scope=scope,
-                reuse=self.reuse,
-                is_training=self.train)
+                center=False)
+
 
         # Calculate output (+) integration: h2 (8, 9)
         h2 = self.output_integration(

@@ -14,7 +14,7 @@ from db import db
 def update_lr(config, step):
     """Implement a LR schedule."""
     if config.optimizer == 'momentum' or config.optimizer == 'adam':
-        if step > 0 and (step % 100) == 0:
+        if step > 0 and (step % 200) == 0:  # Worked well @ 100, v well at 150
             old_lr = config.lr
             config.lr /= 2
             print 'Reducing LR from %s -> %s' % (old_lr, config.lr)
@@ -440,6 +440,7 @@ def training_loop(
                             print 'Reset early stop count.'
                         if it_early_stop <= 0:
                             print 'Early stop triggered. Ending training early.'
+                            print 'Best validation loss: %s' % np.min(val_perf)
                             return
                         val_perf = save_progress(
                             config=config,
@@ -508,5 +509,6 @@ def training_loop(
                 step += 1
     else:
         raise NotImplementedError
+    print 'Best validation loss: %s' % np.min(val_perf)
     return
 

@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from layers.feedforward import vgg19_nomask as vgg19, conv
 from layers.feedforward import normalization
+from layers.recurrent import hgru_bn_for_ln as hgru
 
 
 def build_model(data_tensor, reuse, training, output_shape, dilate=False):
@@ -21,24 +22,41 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
                 up_to='c3',
                 mask=mask,
                 training=training)
-            x = tf.layers.batch_normalization(
-                inputs=x,
-                training=training,
-                name='ro_bn_1',
-                reuse=reuse is not None)
+            x = x[:, 7:19, 7:19, :]
+            x = tf.contrib.layers.instance_norm(
+                inputs=x)
         with tf.variable_scope('scratch_regularize', reuse=reuse):
+            #x = tf.layers.conv2d(
+            #    inputs=x,
+            #    kernel_size=(1, 1),
+            #    filters=32,  # 24
+            #    # activation=None,  # tf.nn.relu,
+            #    activation=tf.nn.relu,
+            #    padding='same')
+            #x = tf.contrib.layers.instance_norm(
+            #    inputs=x)
+            layer_hgru = hgru.hGRU(
+                layer_name='hgru_1',
+                x_shape=x.get_shape().as_list(),
+                timesteps=12,  # 8
+                h_ext=9,  # 5
+                strides=[1, 1, 1, 1],
+                padding='SAME',
+                aux={'reuse': False, 'constrain': False, 'recurrent_nl': tf.nn.relu},
+                train=training)
+            h2 = layer_hgru.build(x)
+            h2 = tf.contrib.layers.instance_norm(
+                inputs=h2)
             x = tf.layers.conv2d(
                 inputs=x,
                 kernel_size=(1, 1),
                 filters=32,  # 24
-                activation=tf.nn.elu,
+                # activation=None,  # tf.nn.relu,
+                activation=tf.nn.relu,
                 padding='same')
-            x = tf.layers.batch_normalization(
-                inputs=x,
-                training=training,
-                name='ro_bn_2',
-                reuse=reuse is not None)
-            x = x[:, 7:19, 7:19, :]
+            x = tf.contrib.layers.instance_norm(
+                inputs=x)
+            # x += h2
             if dilate:
                 x = tf.layers.separable_conv2d(
                     inputs=x,
@@ -57,8 +75,6 @@ def build_model(data_tensor, reuse, training, output_shape, dilate=False):
                     padding='valid')
             x = tf.contrib.layers.flatten(x)
     x = tf.abs(x)
-    mean = moments['mean']
-    sd = moments['std']
     extra_activities = {
         'activity': net.conv1_1,
         'fc': tf.trainable_variables()[-3],
