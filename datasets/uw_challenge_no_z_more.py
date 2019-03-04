@@ -57,12 +57,14 @@ class data_processing(object):
     def get_data(self, split_start=None, split_size=None):
         """Get the names of files."""
         if split_start is None:
-            split_size, split_start = 50, 0  # Take first 50 images for validation
+            split_size, split_start = 150, 0  # Take first 50 images for validation
         image_data = np.load(self.image_data)
         # image_data = image_data[..., [2, 1, 0]]
         neural_data = pd.read_csv(self.neural_data)
         test_images = image_data[:self.test_data_split]
         train_images = image_data[self.test_data_split:]
+        np.random.seed(0)
+        train_images = train_images[np.random.permutation(len(train_images))]
         train_masks = (train_images == 0).astype(np.float32)
         test_masks = (test_images == 0).astype(np.float32)
         train_masks = np.median(train_masks, axis=[0, 3]).astype(np.float32)[None, ..., None]

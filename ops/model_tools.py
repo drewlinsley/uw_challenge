@@ -236,16 +236,22 @@ def build_model(
                 output_shape=test_dataset_module.output_size)
 
         # Derive loss
-        test_loss = losses.derive_loss(
+        if isinstance(config.loss_function, list):
+            test_loss = config.val_loss_function
+        else:
+            test_loss = config.loss_function
+        test_loss, _ = losses.derive_loss(
             labels=test_labels,
             logits=test_logits,
-            loss_type=config.loss_function)
+            loss_type=test_loss,
+            loss_weights=config.loss_weights)
 
         # Derive score
         test_score = losses.derive_score(
             labels=test_labels,
             logits=test_logits,
             loss_type=config.loss_function,
+            dataset=train_dataset_module.output_name,
             score_type=config.score_function)
 
         # Initialize model
@@ -298,7 +304,7 @@ def build_model(
             if 0:
                 wd = 1e-2 * tf.add_n([tf.reduce_mean(tf.abs(v)) for v in wd_vars])
             else:
-                wd = 1e-2 * tf.add_n([tf.nn.l2_loss(v) for v in wd_vars])
+                wd = 1e-4 * tf.add_n([tf.nn.l2_loss(v) for v in wd_vars])
             train_loss += wd
         if isinstance(config.loss_function, list):
             val_loss = config.val_loss_function

@@ -14,7 +14,7 @@ from db import db
 def update_lr(config, step):
     """Implement a LR schedule."""
     if config.optimizer == 'momentum' or config.optimizer == 'adam':
-        if step > 0 and (step % 300) == 0:  # Worked well @ 100, v well at 150
+        if step > 0 and (step % 250) == 0:  # Worked well @ 100, v well at 150
             old_lr = config.lr
             config.lr /= 2
             print 'Reducing LR from %s -> %s' % (old_lr, config.lr)
@@ -113,7 +113,7 @@ def validation_step(
     it_val_score = np.asarray([])
     it_val_loss = np.asarray([])
     start_time = time.time()
-    if np.unique(val_batch_idx) == 0:
+    if len(np.unique(val_batch_idx) == 0):
         sequential = True
     for idx in range(config.validation_steps):
         # Validation accuracy as the average of n batches
@@ -272,6 +272,9 @@ def test_loop(
         save_activities=False,
         save_gradients=False):
     """Run the model test loop."""
+    if checkpoint is not None:
+        saver.restore(sess, checkpoint)
+        print 'Restored checkpoint %s' % checkpoint
     if placeholders:
         test_images = placeholders['test']['images']
         test_labels = placeholders['test']['labels']
@@ -471,7 +474,6 @@ def training_loop(
                             save_checkpoints=save_checkpoints)
                         val_perf[val_check] = val_lo
                     except Exception as e:
-                        import ipdb;ipdb.set_trace()
                         log.info('Failed to save checkpoint: %s' % e)
 
                     # Training status and validation accuracy
@@ -502,8 +504,6 @@ def training_loop(
 
                 # Implement lr schedule
                 config = update_lr(config, step)
-                # if step > 0 and step % 250 == 0:
-                #     import ipdb;ipdb.set_trace()
 
                 # End iteration
                 step += 1

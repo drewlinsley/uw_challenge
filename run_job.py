@@ -1,4 +1,6 @@
 import os
+import numpy as np
+import pandas as pd
 from db import db
 import argparse
 from utils import logger
@@ -72,11 +74,24 @@ def main(
         checkpoint=checkpoint)
     if test:
         # Save results somewhere safe
+        assert out_dir is not None
         py_utils.make_dir(out_dir)
         results['checkpoint'] = checkpoint
         results['model'] = model
         results['experiment'] = experiment
-        np.savez(os.path.join(out_dir, exp_label), **results) 
+        out_path = os.path.join(out_dir, checkpoint.split(os.path.sep)[-2])
+        np.savez(out_path, **results) 
+        print 'Saved results to %s' % out_path
+
+        # Fill in the submission file
+        sub_template = pd.read_csv(os.path.join('utils', 'sub.csv'))
+        id_vec = sub_template.Id
+        columns = sub_template.columns
+        preds = results['test_dict']['test_logits']
+        df = pd.DataFrame(np.hstack((id_vec.as_matrix()[..., None], preds)), columns=columns)
+        df.to_csv(os.path.join(out_dir, 'sub.csv'))
+        df = pd.DataFrame(preds)
+        df.to_csv(os.path.join(out_dir, 'data_sub.csv'))
     log.info('Finished.')
 
 

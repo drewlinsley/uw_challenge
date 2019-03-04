@@ -33,14 +33,13 @@ def experiment_params():
 
     exp['loss_function'] = [['mse_nn', 'pearson']]
     exp['loss_weights'] = [[1, 0.5]]
-    exp['loss_function'] = ['mse_nn']
+    exp['loss_function'] = ['pw_mse_nn']
     exp['loss_weights'] = [1]  # [[1, 0.2]]
     exp['val_loss_function'] = ['mse_nn']
     exp['score_function'] = ['mse_nn']
     exp['optimizer'] = ['momentum']
     exp['train_batch_size'] = [50]
     exp['val_batch_size'] = [50]
-    exp['test_batch_size'] = [50]
     exp['epochs'] = [2000]
 
     # Augmentations specified in lists of lists
@@ -53,6 +52,5 @@ def experiment_params():
     exp['val_augmentations'] = [[
         'pad'
     ]]
-    exp['test_augmentations'] = exp['val_augmentations']
     return exp
 
