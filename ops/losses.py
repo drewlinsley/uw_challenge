@@ -79,7 +79,7 @@ def derive_loss_fun(labels, logits, loss_type):
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
         mask = tf.cast(tf.greater(labels, 0.), tf.float32)
-        rew = tf.maximum(tf.cast(tf.greater(tf.reduce_sum(tf.cast(tf.equal(mask, 0), tf.float32), 1), 0), tf.float32) * 0.25, 0)
+        rew = tf.maximum(tf.cast(tf.greater(tf.reduce_sum(tf.cast(tf.equal(mask, 0), tf.float32), 1), 0), tf.float32) * 0.5, 0)
         return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * (mask * tf.expand_dims(rew, axis=1))))
         # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
     elif loss_type == 'l2_image':
@@ -268,4 +268,37 @@ def pdist_cos(labels, logits, mask=None):
     logits = tf.nn.l2_normalize(logits, 0)  # Try row-wise instead?
     prod = tf.matmul(labels, logits, adjoint_b=True)
     return 1 - prod
+
+
+def laplace(x):
+    """Regularize the laplace of the kernel."""
+    kernel = np.asarray([
+        [0.5, 1, 0.5],
+        [1, -6, 1],
+        [0.5, 1, 0.5]
+    ])[:, :, None, None]
+    kernel = np.repeat(
+        kernel,
+        int(x.get_shape()[-1]), axis=-2).astype(np.float32)
+    tf_kernel = tf.get_variable(
+        name='laplace_%s' % x.name.split('/')[-1].split(':')[0],
+        initializer=kernel)
+    reg_activity = tf.nn.conv2d(
+        x,
+        filter=tf_kernel,
+        strides=[1, 1, 1, 1],
+        padding='SAME')
+    return tf.reduce_mean(tf.pow(reg_activity, 2))
+
+
+def orthogonal(x, eps=1e-12):
+    """Regularization for orthogonal components."""
+    x_shape = [int(d) for d in x.get_shape()]
+    out_rav_x = tf.reshape(tf.transpose(x, [3, 0, 1, 2]), [x_shape[3], -1])
+    z = tf.matmul(out_rav_x, out_rav_x, transpose_b=True)  # Dot products
+    x_norm = tf.norm(out_rav_x, axis=1, keep_dims=True)
+    norm_kronecker = x_norm * tf.transpose(x_norm)  # kronecker prod of norms
+    d = (z / norm_kronecker) ** 2  # Square so that minimum is orthogonal
+    diag_d = tf.eye(x_shape[3]) * d
+    return tf.reduce_mean(d - diag_d)  # Minimize off-diagonals
 

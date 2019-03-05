@@ -305,13 +305,21 @@ def build_model(
         #     if 'batch_normalization' not in v.name and
         #     'block' not in v.name and
         #     'training' not in v.name]))
-        wd_vars = [v for v in tf.trainable_variables() if 'regularize' in v.name and 'batch_normalization' not in v.name and 'training' not in v.name and 'instance' not in v.name]
+        wd_vars = [v for v in tf.trainable_variables() if 'regularize' in v.name and 'batch_normalization' not in v.name and 'training' not in v.name and 'instance' not in v.name and 'spatial_mask' not in v.name]
         if len(wd_vars):
             if 0:
                 wd = 1e-2 * tf.add_n([tf.reduce_mean(tf.abs(v)) for v in wd_vars])
             else:
                 wd = 1e-2 * tf.add_n([tf.nn.l2_loss(v) for v in wd_vars])
             train_loss += wd
+            spatial_mask = [x for x in tf.trainable_variables() if 'spatial_mask' in x.name]
+            if len(spatial_mask):
+                train_loss += tf.add_n([losses.laplace(x) for x in spatial_mask]) * 100
+                print 'Regularizing laplace of spatial mask.'
+            hgru_kernels = [x for x in tf.trainable_variables() if '_horizontal_' in x.name]
+            if 0:  # len(hgru_kernels):
+                train_loss += tf.add_n([losses.orthogonal(x) for x in hgru_kernels]) * 100
+                print 'Regularizing diagonal of horizontal kernels.'
         val_loss = config.val_loss_function
         val_loss, val_loss_list = losses.derive_loss(
             labels=val_labels,

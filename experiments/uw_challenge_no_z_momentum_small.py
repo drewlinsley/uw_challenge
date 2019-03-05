@@ -24,7 +24,7 @@ def experiment_params():
     exp['shuffle_train'] = [True]
     exp['save_checkpoints'] = [1]
     exp['save_activities'] = [False]
-    exp['save_weights'] = [False]
+    exp['save_weights'] = [True]
     exp['save_gradients'] = [False]
 
     # Model hyperparameters
@@ -37,7 +37,7 @@ def experiment_params():
     exp['loss_weights'] = [1]  # [[1, 0.2]]
     exp['val_loss_function'] = ['mse']
     exp['score_function'] = ['mse']
-    exp['optimizer'] = ['momentum']
+    exp['optimizer'] = ['adam']  # ['momentum']
     exp['train_batch_size'] = [50]
     exp['val_batch_size'] = [10]
     exp['test_batch_size'] = [50]
