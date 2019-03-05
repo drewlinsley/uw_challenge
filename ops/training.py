@@ -14,7 +14,7 @@ from db import db
 def update_lr(config, step):
     """Implement a LR schedule."""
     if config.optimizer == 'momentum' or config.optimizer == 'adam':
-        if step > 0 and (step % 250) == 0:  # Worked well @ 100, v well at 150
+        if step > 0 and (step % 500) == 0:  # Worked well @ 100, v well at 150
             old_lr = config.lr
             config.lr /= 2
             print 'Reducing LR from %s -> %s' % (old_lr, config.lr)
@@ -145,6 +145,11 @@ def validation_step(
             it_val_dict = sess.run(val_dict, feed_dict=feed_dict)
         else:
             it_val_dict = sess.run(val_dict)
+        # import ipdb;ipdb.set_trace()
+        try:
+            print 'max val logit %s' % it_val_dict['val_logits'].max() 
+        except Exception:
+            print 'max test logit %s' % it_val_dict['test_logits'].max() 
         it_val_score = np.append(
             it_val_score,
             it_val_dict[eval_score_key])
@@ -343,7 +348,7 @@ def training_loop(
         save_weights=False,
         save_checkpoints=False,
         save_activities=False,
-        early_stop=5,  # If you have checked 10 times with no new checkpoints
+        early_stop=10,  # If you have checked 10 times with no new checkpoints
         save_gradients=False):
     """Run the model training loop."""
     if checkpoint is not None:

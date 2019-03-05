@@ -304,12 +304,9 @@ def build_model(
             if 0:
                 wd = 1e-2 * tf.add_n([tf.reduce_mean(tf.abs(v)) for v in wd_vars])
             else:
-                wd = 1e-4 * tf.add_n([tf.nn.l2_loss(v) for v in wd_vars])
+                wd = 1e-2 * tf.add_n([tf.nn.l2_loss(v) for v in wd_vars])
             train_loss += wd
-        if isinstance(config.loss_function, list):
-            val_loss = config.val_loss_function
-        else:
-            val_loss = config.loss_function
+        val_loss = config.val_loss_function
         val_loss, val_loss_list = losses.derive_loss(
             labels=val_labels,
             logits=val_logits,

@@ -57,7 +57,7 @@ class data_processing(object):
     def get_data(self, split_start=None, split_size=None):
         """Get the names of files."""
         if split_start is None:
-            split_size, split_start = 50, 0  # Take first 50 images for validation
+            split_size, split_start = 20, 0  # Take first 50 images for validation
         image_data = np.load(self.image_data)
         # image_data = image_data[..., [2, 1, 0]]
         neural_data = pd.read_csv(self.neural_data)
@@ -73,9 +73,16 @@ class data_processing(object):
         val_idx = np.in1d(np.arange(len(train_images)), np.arange(split_start, split_start + split_size))
         val_images = train_images[val_idx]
         val_labels = train_labels[val_idx]
+        # assert not np.sum(np.isnan(val_labels))
         train_images = train_images[~val_idx]
         train_labels = train_labels[~val_idx]
         val_masks = np.copy(train_masks)
+        if self.z_score_neurons:
+            train_mean = np.nanmean(train_labels, axis=0, keepdims=True)
+            train_std = np.nanstd(train_labels, axis=0, keepdims=True)
+            np.savez(os.path.join('moments', self.output_name), mean=train_mean, std=train_std)
+            # train_labels = (train_labels - train_mean) / train_std
+            # val_labels = (val_labels - train_mean) / train_std
         train_labels[np.isnan(train_labels)] = 0.  #  -99.
         val_labels[np.isnan(val_labels)] = 0.  # -99.
 
@@ -83,10 +90,12 @@ class data_processing(object):
         cv_files, cv_labels, cv_masks = {}, {}, {}
         cv_files[self.folds['train']] = train_images
         cv_files[self.folds['val']] = val_images
+        # cv_files[self.folds['val']] = test_images
         cv_files[self.folds['test']] = test_images
         cv_labels[self.folds['train']] = train_labels
         cv_labels[self.folds['val']] = val_labels
-        cv_labels[self.folds['test']] = val_labels  # Dummy data
+        # cv_labels[self.folds['val']] = train_labels[:len(test_images)]
+        cv_labels[self.folds['test']] = train_labels[:len(test_images)]  # Dummy data
         cv_masks[self.folds['train']] = train_masks
         cv_masks[self.folds['val']] = val_masks
         cv_masks[self.folds['test']] = test_masks

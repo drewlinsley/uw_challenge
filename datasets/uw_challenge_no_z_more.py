@@ -64,12 +64,14 @@ class data_processing(object):
         test_images = image_data[:self.test_data_split]
         train_images = image_data[self.test_data_split:]
         np.random.seed(0)
-        train_images = train_images[np.random.permutation(len(train_images))]
+        train_shuff = np.random.permutation(len(train_images))
+        train_images = train_images[train_shuff]
         train_masks = (train_images == 0).astype(np.float32)
         test_masks = (test_images == 0).astype(np.float32)
         train_masks = np.median(train_masks, axis=[0, 3]).astype(np.float32)[None, ..., None]
         test_masks = np.median(test_masks, axis=[0, 3]).astype(np.float32)[None, ..., None]
         train_labels = neural_data.as_matrix()[:, 1:]  # First column is index
+        train_labels = train_labels[train_shuff]
 
         # Create validation set
         val_idx = np.in1d(np.arange(len(train_images)), np.arange(split_start, split_start + split_size))
@@ -78,8 +80,8 @@ class data_processing(object):
         train_images = train_images[~val_idx]
         train_labels = train_labels[~val_idx]
         val_masks = np.copy(train_masks)
-        train_labels[np.isnan(train_labels)] = -99.
-        val_labels[np.isnan(val_labels)] = -99.
+        train_labels[np.isnan(train_labels)] = 0.  #  -99.
+        val_labels[np.isnan(val_labels)] = 0.  # -99.
 
         # Build CV dict
         cv_files, cv_labels, cv_masks = {}, {}, {}

@@ -25,3 +25,7 @@
         - Get docker pids `docker ps`
         - Get docker job stdout `docker logs <pid>
 
+
+`CUDA_VISIBLE_DEVICES=0 python run_job.py --model=vgg19_fc_c3_instance_se_hgru_exp --experiment=uw_challenge_no_z_momentum_more --placeholders --no_db`
+`CUDA_VISIBLE_DEVICES=0 python run_job.py --model=vgg19_fc_c3_instance_se_hgru_exp --experiment=uw_challenge_no_z_momentum_more --placeholders --no_db --test --ckpt=/media/data_cifs/uw_challenge/checkpoints/uw_challenge_no_z_momentum_more_2019_03_04_19_46_44_780496/model_250.ckpt-250  --out_dir=kaggle_test`
+

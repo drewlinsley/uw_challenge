@@ -85,12 +85,13 @@ class Model:
             mask = self.max_pool(mask, 'mask3')
         if up_to == 'c4':
             return self.pool4, mask
-        raise NotImplementedError
 
         self.conv5_1 = self.conv_layer(self.pool4, 512, 512, "conv5_1")
         self.conv5_2 = self.conv_layer(self.conv5_1, 512, 512, "conv5_2")
         self.conv5_3 = self.conv_layer(self.conv5_2, 512, 512, "conv5_3")
         self.conv5_4 = self.conv_layer(self.conv5_3, 512, 512, "conv5_4")
+        if up_to == 's5':
+            return self.conv5_4, mask
         self.pool5 = self.max_pool(self.conv5_4, 'pool5')
 
         self.fc6 = self.fc_layer(self.pool5, 25088, 4096, "fc6")  # 25088 = ((224 // (2 ** 5)) ** 2) * 512

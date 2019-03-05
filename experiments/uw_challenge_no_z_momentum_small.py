@@ -9,10 +9,10 @@ def experiment_params():
     # Experiment params. All below this line need to be in lists.
     exp['experiment'] = [__file__.split(os.path.sep)[-1].split('.')[0]]
     exp['train_dataset'] = [
-        'uw_challenge_no_z_more',
+        'uw_challenge_no_z_small',
     ]
     exp['val_dataset'] = [
-        'uw_challenge_no_z_more',
+        'uw_challenge_no_z_small',
     ]
     exp['model'] = [
         'hgru_bn',
@@ -31,15 +31,15 @@ def experiment_params():
     exp['lr'] = [1e-2]
     # exp['freeze_lr'] = [1e-6]
 
-    exp['loss_function'] = [['mse_nn', 'pearson']]
-    exp['loss_weights'] = [[1, 0.5]]
-    exp['loss_function'] = ['mse_nn']
+    # exp['loss_function'] = [['mse_nn', 'poisson']]
+    # exp['loss_weights'] = [[1, 0.25]]
+    exp['loss_function'] = ['mse_nn_half']
     exp['loss_weights'] = [1]  # [[1, 0.2]]
-    exp['val_loss_function'] = ['mse_nn']
-    exp['score_function'] = ['mse_nn']
+    exp['val_loss_function'] = ['mse']
+    exp['score_function'] = ['mse']
     exp['optimizer'] = ['momentum']
     exp['train_batch_size'] = [50]
-    exp['val_batch_size'] = [50]
+    exp['val_batch_size'] = [10]
     exp['test_batch_size'] = [50]
     exp['epochs'] = [2000]
 

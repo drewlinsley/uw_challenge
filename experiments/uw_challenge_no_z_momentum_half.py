@@ -9,10 +9,10 @@ def experiment_params():
     # Experiment params. All below this line need to be in lists.
     exp['experiment'] = [__file__.split(os.path.sep)[-1].split('.')[0]]
     exp['train_dataset'] = [
-        'uw_challenge_no_z_more',
+        'uw_challenge_no_z_half',
     ]
     exp['val_dataset'] = [
-        'uw_challenge_no_z_more',
+        'uw_challenge_no_z_half',
     ]
     exp['model'] = [
         'hgru_bn',

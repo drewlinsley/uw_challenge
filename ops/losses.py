@@ -67,13 +67,20 @@ def derive_loss_fun(labels, logits, loss_type):
     elif loss_type == 'mse':
         return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits))
     elif loss_type == 'pw_mse_nn':
-        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        mask = tf.cast(tf.greater(labels, 0.), tf.float32)
         return tf.sqrt(tf.losses.mean_pairwise_squared_error(labels=labels, predictions=logits, weights=mask))
     elif loss_type == 'mse_nn':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
-        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        mask = tf.cast(tf.greater(labels, 0.), tf.float32)
         return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
+        # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
+    elif loss_type == 'mse_nn_half':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        mask = tf.cast(tf.greater(labels, 0.), tf.float32)
+        rew = tf.maximum(tf.cast(tf.greater(tf.reduce_sum(tf.cast(tf.equal(mask, 0), tf.float32), 1), 0), tf.float32) * 0.25, 0)
+        return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * (mask * tf.expand_dims(rew, axis=1))))
         # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
     elif loss_type == 'l2_image':
         logits = tf.cast(logits, tf.float32)
@@ -91,12 +98,25 @@ def derive_loss_fun(labels, logits, loss_type):
         return pearson_dissimilarity(
             labels=labels,
             logits=logits,
-            mask=tf.greater_equal(labels, 0.),
+            mask=tf.greater(labels, 0.),
             REDUCE=tf.reduce_mean)
+    elif loss_type == 'cosine':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        return tf.losses.cosine_distance(labels=labels, predictions=logits, weights=tf.cast(tf.greater(labels, 0.), tf.float32), axis=1)
+    elif loss_type == 'poisson':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        lss = tf.nn.log_poisson_loss(targets=labels, log_input=tf.log(logits))
+        return tf.reduce_mean(lss * tf.cast(tf.greater(labels, 0.), tf.float32))
+    elif loss_type == 'huber':
+        logits = tf.cast(logits, tf.float32)
+        labels = tf.cast(labels, tf.float32)
+        lss = tf.losses.huber_loss(labels=labels, logits=logits, weights=tf.cast(tf.greater(labels, 0.), tf.float32))
     elif loss_type == 'nn_sim':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
-        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        mask = tf.cast(tf.greater(labels, 0.), tf.float32)
         logit_sim = pdist_cos(
             labels=logits,
             logits=logits,
@@ -127,7 +147,7 @@ def derive_score(labels, logits, score_type, loss_type, dataset):
     elif score_type == 'mse_nn':
         logits = tf.cast(logits, tf.float32)
         labels = tf.cast(labels, tf.float32)
-        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        mask = tf.cast(tf.greater(labels, 0.), tf.float32)
         # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
         return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
     elif score_type == 'mse_nn_unnorm':
@@ -138,7 +158,7 @@ def derive_score(labels, logits, score_type, loss_type, dataset):
         sigma = moments['std']
         logits = sigma * logits + mu
         labels = sigma * labels + mu
-        mask = tf.cast(tf.greater_equal(labels, 0.), tf.float32)
+        mask = tf.cast(tf.greater(labels, 0.), tf.float32)
         # return tf.sqrt(tf.losses.mean_squared_error(labels=labels, predictions=logits, weights=mask))
         return tf.sqrt(tf.reduce_mean(((labels - logits) ** 2) * mask))
     elif score_type == 'pearson' or score_type == 'correlation':
