@@ -124,6 +124,7 @@ def build_model(
         placeholders=False,
         checkpoint=None,
         test=False,
+        rot_supervision=False,
         tensorboard_images=False):
     """Standard model building routines."""
     config = py_utils.add_to_config(
@@ -285,6 +286,11 @@ def build_model(
                 reuse=tf.AUTO_REUSE,
                 training=False,
                 output_shape=val_dataset_module.output_size)
+
+        # Self-supervised?
+        if rot_supervision:
+             train_labels = train_vars['rot']
+             val_labels = val_vars['rot']
 
         # Derive loss
         train_loss, train_loss_list = losses.derive_loss(

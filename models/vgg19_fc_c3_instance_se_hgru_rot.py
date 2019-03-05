@@ -24,7 +24,7 @@ def build_model(data_tensor, reuse, training, output_shape, renorm=False, dilate
                 mask=mask,
                 training=training)
 
-            if 0:  # training:
+            if 1:
                 x = x[:, 7:19, 7:19, :]
                 random_angles = tf.random_uniform(
                     shape=(tf.shape(x)[0],),
@@ -36,10 +36,8 @@ def build_model(data_tensor, reuse, training, output_shape, renorm=False, dilate
                         x,
                         tf.contrib.image.angles_to_projective_transforms(
                             random_angles, tf.cast(tf.shape(x)[1], tf.float32), tf.cast(tf.shape(x)[2], tf.float32)))
-                x = tf.random_crop(x, [10, 6, 6, 256])
-            else:
-                # x = x[:, 10:16, 10:16, :]
-                x = x[:, 36:76, 36:76, :]
+                x = x[:, 20:90, 20:90, :]
+                x = tf.random_crop(x, [10, 40, 40, 256])
             x = tf.contrib.layers.instance_norm(
                 inputs=x)
 
@@ -97,6 +95,7 @@ def build_model(data_tensor, reuse, training, output_shape, renorm=False, dilate
     extra_activities = {
         'activity': net.conv1_1,
         'fc': tf.trainable_variables()[-3],
+        'rot': random_angles,
         'mask': mask
     }
     return x, extra_activities

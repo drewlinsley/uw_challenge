@@ -31,6 +31,7 @@ def main(
         gpu_device='/gpu:0',
         cpu_device='/cpu:0',
         transfer=False,
+        rot_supervision=False,
         placeholders=False,
         out_dir=None):
     """Interpret and run a model."""
@@ -69,6 +70,7 @@ def main(
         config=main_config,
         use_db=use_db,
         placeholders=placeholders,
+        rot_supervision=rot_supervision,
         gpu_device=gpu_device,
         cpu_device=cpu_device,
         checkpoint=checkpoint)
@@ -161,6 +163,11 @@ if __name__ == '__main__':
         dest='placeholders',
         action='store_true',
         help='Use placeholders.')
+    parser.add_argument(
+        '--rot',
+        dest='rot_supervision',
+        action='store_true',
+        help='Rotation self-supervision.')
     parser.add_argument(
         '--test',
         dest='test',
