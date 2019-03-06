@@ -9,10 +9,10 @@ def experiment_params():
     # Experiment params. All below this line need to be in lists.
     exp['experiment'] = [__file__.split(os.path.sep)[-1].split('.')[0]]
     exp['train_dataset'] = [
-        'uw_challenge_no_z_small',
+        'ruobing_bold_5000',
     ]
     exp['val_dataset'] = [
-        'uw_challenge_no_z_small',
+        'ruobing_bold_5000',
     ]
     exp['model'] = [
         'hgru_bn',
@@ -39,19 +39,19 @@ def experiment_params():
     exp['score_function'] = ['mse']
     exp['optimizer'] = ['momentum']
     exp['train_batch_size'] = [50]
-    exp['val_batch_size'] = [10]
+    exp['val_batch_size'] = [50]
     exp['test_batch_size'] = [50]
     exp['epochs'] = [2000]
 
     # Augmentations specified in lists of lists
     exp['train_augmentations'] = [[
-        'pad',
+        'center_crop',
         # 'random_contrast',
         # 'random_brightness',
         # 'left_right',
     ]]
     exp['val_augmentations'] = [[
-        'pad'
+        'center_crop'
     ]]
     exp['test_augmentations'] = exp['val_augmentations']
     return exp
