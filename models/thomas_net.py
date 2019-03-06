@@ -30,7 +30,7 @@ def build_model(data_tensor, reuse, training, output_shape, renorm=False, dilate
                 inputs=x)
 
         with tf.variable_scope('scratch_regularize', reuse=reuse):
-            x = x[:, 16:37, 16:37, :]
+            x = x[:, 112:262, 112:262, :]
             w = tf.get_variable(
                 name='spatial_mask',
                 trainable=training,
@@ -55,8 +55,11 @@ def build_model(data_tensor, reuse, training, output_shape, renorm=False, dilate
                 depth_multiplier=1,
                 dilation_rate=(1, 1),
                 filters=output_shape,
+                activation=tf.nn.elu,
                 padding='valid')
             x = tf.squeeze(x)
+            x = tf.reduce_max(x, reduction_indices=[1, 2])
+            x = tf.layers.dense(x, np.squeeze(output_shape))
 
             # Add readout
     mean = moments['mean']

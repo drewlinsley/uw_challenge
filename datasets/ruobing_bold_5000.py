@@ -12,8 +12,8 @@ class data_processing(object):
         self.name = 'uw_challenge'
         self.output_name = 'uw_challenge'
         self.img_dir = 'imgs'
-        self.image_data = '/media/data_cifs/Sheinberg_lab/data/bold5000.npy'
-        self.neural_data = '/media/data_cifs/Sheinberg_lab/data/bold5000_sqrt_of_numspk_responsiveCells_2019-01-23.csv'
+        self.image_data = '/media/data_cifs/Sheinberg_lab/data/cleaned_images/bold5000_cleaned.npy'
+        self.neural_data = '/media/data_cifs/Sheinberg_lab/data/cleaned_images/bold5000_sqrt_of_numspk_responsiveCells_cleaned.csv'
         self.config = Config()
         self.im_size = [375, 375, 3]  # 600, 600
         self.model_input_image_size = [224, 224, 3]  # [107, 160, 3]
@@ -59,12 +59,6 @@ class data_processing(object):
         if split_start is None:
             split_size, split_start = 50, 0  # Take first 50 images for validation
         image_data = np.load(self.image_data)
-        ims = []
-        for im in image_data:
-            im_s = im.shape
-            diff = (im_s[0] - 320) // 2
-            ims += [im[diff: diff + 320, diff: diff + 320, :]]
-        image_data = np.stack(ims, axis=0)
 
         # image_data = image_data[..., [2, 1, 0]]
         neural_data = pd.read_csv(self.neural_data)
